@@ -90,8 +90,8 @@ void Error_Handler(void);
 #define VIBR_NPWD6_GPIO_Port   GPIOD
 #define VIBR_NPWD7_Pin         LL_GPIO_PIN_6
 #define VIBR_NPWD7_GPIO_Port   GPIOC
-#define VIBR_NCS_Pin           LL_GPIO_PIN_7
-#define VIBR_NCS_GPIO_Port     GPIOC
+#define VIBR_NDRDY_Pin           LL_GPIO_PIN_7
+#define VIBR_NDRDY_GPIO_Port     GPIOC
 #define RCC_LAN_Pin            LL_GPIO_PIN_9
 #define RCC_LAN_GPIO_Port      GPIOC
 #define RCC_ADC_Pin            LL_GPIO_PIN_8

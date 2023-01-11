@@ -121,4 +121,23 @@ void SysTick_Handler(void)
 /* please refer to the startup file (startup_stm32f4xx.s).                    */
 /******************************************************************************/
 
+void DMA1_Stream3_IRQHandler(void)
+{
+    if (LL_DMA_IsActiveFlag_TC3(DMA1)) {
+        LL_DMA_ClearFlag_TC3(DMA1);
+    }
+}
+
+void DMA1_Stream4_IRQHandler(void)
+{
+}
+
+void EXTI9_5_IRQHandler(void)
+{
+    if (LL_EXTI_IsActiveFlag_0_31(LL_EXTI_LINE_7) != RESET) {
+        LL_EXTI_ClearFlag_0_31(LL_EXTI_LINE_7);
+        LL_DMA_EnableStream(DMA1, LL_DMA_CHANNEL_4);
+    }
+}
+
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

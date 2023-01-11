@@ -2,6 +2,7 @@
 
 #include "udp.h"
 #include "debug.h"
+#include "ads1278.h"
 
 #define UDP_SERVER_PORT                      5
 
@@ -53,9 +54,13 @@ static void cmd_work(enum cmd cmd, struct pbuf *p)
         break;
     case CMD_START:
         status = STATUS_STARTED;
+        debug_printf("start work\n");
+        ads1278_start();
         break;
     case CMD_STOP:
         status = STATUS_STOPPED;
+        debug_printf("stop work\n");
+         ads1278_stop();
         break;
     case CMD_ECHO:
         // udp_send(pcb, p);

@@ -26,6 +26,7 @@
 #include "gpio.h"
 #include "debug.h"
 #include "udp_server.h"
+#include "ads1278.h"
 
 /* Private includes ----------------------------------------------------------*/
 
@@ -60,13 +61,13 @@ int main(void)
     MX_GPIO_Init();
     MX_LWIP_Init();
     MX_USART1_UART_Init();
-    MX_SPI1_Init();
-    MX_SPI2_Init();
+    MX_SPI1_Init();   
     MX_SPI3_Init();
     MX_TIM6_Init();
 
     debug_printf("Init Complete\n");
     udp_server_init();
+    ads1278_init();
 
     /* Infinite loop */
 
