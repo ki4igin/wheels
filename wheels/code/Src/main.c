@@ -25,6 +25,7 @@
 #include "usart.h"
 #include "gpio.h"
 #include "debug.h"
+#include "udp_server.h"
 
 /* Private includes ----------------------------------------------------------*/
 
@@ -65,6 +66,8 @@ int main(void)
     MX_TIM6_Init();
 
     debug_printf("Init Complete\n");
+    udp_server_init();
+
     /* Infinite loop */
 
     while (1) {

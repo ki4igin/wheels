@@ -57,7 +57,7 @@ void MX_GPIO_Init(void)
                                     | RTD_NCS2_Pin | RTD_NCS7_Pin | RTD_NCS6_Pin);
 
     /**/
-    LL_GPIO_SetOutputPin(GPIOC, VIBR_NPWD7_Pin | VIBR_NCS_Pin);
+    LL_GPIO_SetOutputPin(GPIOC, VIBR_NPWD7_Pin);
 
     /**/
     LL_GPIO_SetOutputPin(GPIOB, EXT_SPI_NCS_Pin | RTD_NCS1_Pin);
@@ -80,7 +80,7 @@ void MX_GPIO_Init(void)
     LL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
     /**/
-    GPIO_InitStruct.Pin = PC14_Pin | PC15_Pin | VIBR_NPWD7_Pin | VIBR_NCS_Pin;
+    GPIO_InitStruct.Pin = PC14_Pin | PC15_Pin | VIBR_NPWD7_Pin;
     GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
     GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
