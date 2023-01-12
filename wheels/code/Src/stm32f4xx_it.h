@@ -44,6 +44,8 @@ void DebugMon_Handler(void);
 void PendSV_Handler(void);
 void SysTick_Handler(void);
 
+void DMA1_HalfReceiveComplete_Callback(void);
+
 #ifdef __cplusplus
 }
 #endif

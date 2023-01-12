@@ -60,7 +60,7 @@ static void cmd_work(enum cmd cmd, struct pbuf *p)
     case CMD_STOP:
         status = STATUS_STOPPED;
         debug_printf("stop work\n");
-         ads1278_stop();
+        ads1278_stop();
         break;
     case CMD_ECHO:
         // udp_send(pcb, p);

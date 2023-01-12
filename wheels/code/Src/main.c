@@ -68,11 +68,18 @@ int main(void)
     debug_printf("Init Complete\n");
     udp_server_init();
     ads1278_init();
+    ads1278_start();
 
     /* Infinite loop */
 
     while (1) {
         MX_LWIP_Process();
+        if (ads1278_pac_iscomplete)
+        {
+            ads1278_pac_iscomplete = 0;
+            udp_server_send(ads1278_pac, sizeof(struct ads1278_pac));
+        }
+        
     }
 }
 
