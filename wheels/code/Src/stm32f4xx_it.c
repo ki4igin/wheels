@@ -20,6 +20,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32f4xx_it.h"
+#include "stm32f4xx_ll_tim.h"
 
 #include "gpio_ex.h"
 
@@ -122,6 +123,30 @@ void SysTick_Handler(void)
 /* For the available peripheral interrupt handler names,                      */
 /* please refer to the startup file (startup_stm32f4xx.s).                    */
 /******************************************************************************/
+void DMA1_Stream0_IRQHandler(void)
+{
+    if (LL_DMA_IsActiveFlag_TC0(DMA1)) {
+        LL_DMA_ClearFlag_TC0(DMA1);
+        LL_DMA_DisableStream(DMA1, LL_DMA_STREAM_0);
+        DMA1_SPI3_ReceiveComplete_Callback();
+    }
+    if (LL_DMA_IsActiveFlag_TE0(DMA1)) {
+        LL_DMA_ClearFlag_TE0(DMA1);
+        LL_DMA_DisableStream(DMA1, LL_DMA_STREAM_0);
+    }
+}
+
+void DMA1_Stream5_IRQHandler(void)
+{
+    if (LL_DMA_IsActiveFlag_TC5(DMA1)) {
+        LL_DMA_ClearFlag_TC5(DMA1);
+        LL_DMA_DisableStream(DMA1, LL_DMA_STREAM_5);
+    }
+    if (LL_DMA_IsActiveFlag_TE5(DMA1)) {
+        LL_DMA_ClearFlag_TE5(DMA1);
+        LL_DMA_DisableStream(DMA1, LL_DMA_STREAM_5);
+    }
+}
 
 void DMA1_Stream3_IRQHandler(void)
 {
@@ -130,8 +155,8 @@ void DMA1_Stream3_IRQHandler(void)
         LL_DMA_DisableStream(DMA1, LL_DMA_STREAM_3);
     }
     if (LL_DMA_IsActiveFlag_HT3(DMA1)) {
-        LL_DMA_ClearFlag_HT3(DMA1);        
-        DMA1_HalfReceiveComplete_Callback();
+        LL_DMA_ClearFlag_HT3(DMA1);
+        DMA1_SPI2_HalfReceiveComplete_Callback();
     }
     if (LL_DMA_IsActiveFlag_TE3(DMA1)) {
         LL_DMA_ClearFlag_TE3(DMA1);
@@ -160,6 +185,14 @@ void EXTI9_5_IRQHandler(void)
         LL_DMA_EnableStream(DMA1, LL_DMA_STREAM_4);
 
         test_pin14_toggle();
+    }
+}
+
+void TIM6_DAC_IRQHandler(void)
+{
+    if (LL_TIM_IsActiveFlag_UPDATE(TIM6)) {
+        LL_TIM_ClearFlag_UPDATE(TIM6);
+        TIM6_Update_Callback();
     }
 }
 

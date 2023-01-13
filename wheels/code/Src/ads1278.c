@@ -5,8 +5,8 @@
 #include "stm32f4xx.h"
 #include "stm32f4xx_it.h"
 
-uint8_t rx_buf[BUF_SIZE] = {0};
-uint8_t tx_buf[BUF_SIZE] = {0};
+static uint8_t rx_buf[ADS1278_BUF_SIZE] = {0};
+static  uint8_t tx_buf[ADS1278_BUF_SIZE] = {0};
 
 struct ads1278_pac *ads1278_pac;
 uint32_t ads1278_pac_iscomplete = 1;
@@ -52,7 +52,7 @@ static void nrdy_int_disable()
 void ads1278_init(void)
 {
     MX_SPI2_Init();
-    MX_DMA_SPI2_Init(tx_buf, rx_buf, BUF_SIZE);
+    MX_DMA_SPI2_Init(tx_buf, rx_buf, ADS1278_BUF_SIZE);
 
     LL_SPI_Enable(SPI2);
 
@@ -69,13 +69,13 @@ void ads1278_stop()
     nrdy_int_disable();
 }
 
-void DMA1_HalfReceiveComplete_Callback()
+void DMA1_SPI2_HalfReceiveComplete_Callback()
 {
     static uint32_t cnt = 0;
     static uint32_t pac_num = 0;
-    uint32_t cnt_bytes = cnt * BUF_SIZE / 2;
+    uint32_t cnt_bytes = cnt * ADS1278_BUF_SIZE / 2;
 
-    if (cnt_bytes == (PAC_DATA_SIZE * BUF_SIZE)) {
+    if (cnt_bytes == (ADS1278_PAC_DATA_SIZE * ADS1278_BUF_SIZE)) {
         cnt = 0;
         cnt_bytes = 0;
         ads1278_pac = &ads1278_pacs[pac_num];
@@ -88,11 +88,11 @@ void DMA1_HalfReceiveComplete_Callback()
     if ((cnt & 0x1) == 0) {
         src = (uint32_t *)&rx_buf[0];
     } else {
-        src = (uint32_t *)&rx_buf[BUF_SIZE / 2];
+        src = (uint32_t *)&rx_buf[ADS1278_BUF_SIZE / 2];
     }
 
     uint32_t *dst = (uint32_t *)&ads1278_pacs[pac_num].data[cnt_bytes];
-    for (uint32_t i = 0; i < BUF_SIZE / 2 / 4; i++) {
+    for (uint32_t i = 0; i < ADS1278_BUF_SIZE / 2 / 4; i++) {
         *dst++ = *src++;
     }
 

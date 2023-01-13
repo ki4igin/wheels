@@ -124,7 +124,3 @@ void MX_DMA_SPI3_Init(void *tx_buf, void *rx_buf, uint32_t size)
     NVIC_EnableIRQ(DMA1_Stream0_IRQn);
 }
 
-void MX_DMA_SPI3_SetRxAddr(void *addr)
-{
-    LL_DMA_SetMemoryAddress(DMA1, LL_DMA_STREAM_0, (uint32_t)addr);
-}
