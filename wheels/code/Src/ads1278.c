@@ -4,6 +4,7 @@
 #include "gpio.h"
 #include "stm32f4xx.h"
 #include "stm32f4xx_it.h"
+#include "gpio_ex.h"
 
 static uint8_t rx_buf[ADS1278_BUF_SIZE] = {0};
 static  uint8_t tx_buf[ADS1278_BUF_SIZE] = {0};
@@ -95,6 +96,8 @@ void DMA1_SPI2_HalfReceiveComplete_Callback()
     for (uint32_t i = 0; i < ADS1278_BUF_SIZE / 2 / 4; i++) {
         *dst++ = *src++;
     }
+
+    // test_pin15_toggle();
 
     cnt++;
 }

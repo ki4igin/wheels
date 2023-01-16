@@ -153,28 +153,31 @@ void DMA1_Stream3_IRQHandler(void)
     if (LL_DMA_IsActiveFlag_TC3(DMA1)) {
         LL_DMA_ClearFlag_TC3(DMA1);
         LL_DMA_DisableStream(DMA1, LL_DMA_STREAM_3);
+        test_pin15_toggle();
+        DMA1_SPI2_HalfReceiveComplete_Callback();
     }
     if (LL_DMA_IsActiveFlag_HT3(DMA1)) {
         LL_DMA_ClearFlag_HT3(DMA1);
         DMA1_SPI2_HalfReceiveComplete_Callback();
+        test_pin14_toggle();
     }
     if (LL_DMA_IsActiveFlag_TE3(DMA1)) {
         LL_DMA_ClearFlag_TE3(DMA1);
         LL_DMA_DisableStream(DMA1, LL_DMA_STREAM_3);
     }
-    test_pin15_toggle();
 }
 
 void DMA1_Stream4_IRQHandler(void)
 {
     if (LL_DMA_IsActiveFlag_TC4(DMA1)) {
         LL_DMA_ClearFlag_TC4(DMA1);
+         
     }
     if (LL_DMA_IsActiveFlag_TE4(DMA1)) {
         LL_DMA_ClearFlag_TE4(DMA1);
+         
     }
     LL_DMA_DisableStream(DMA1, LL_DMA_STREAM_4);
-    test_pin15_toggle();
 }
 
 void EXTI9_5_IRQHandler(void)
@@ -184,7 +187,7 @@ void EXTI9_5_IRQHandler(void)
         LL_DMA_EnableStream(DMA1, LL_DMA_STREAM_3);
         LL_DMA_EnableStream(DMA1, LL_DMA_STREAM_4);
 
-        test_pin14_toggle();
+        // test_pin14_toggle();
     }
 }
 

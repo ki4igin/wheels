@@ -35,7 +35,7 @@ void MX_DMA_SPI2_Init(void *tx_buf, void *rx_buf, uint32_t size)
         LL_DMA_STREAM_4,
         LL_DMA_DIRECTION_MEMORY_TO_PERIPH | LL_DMA_PRIORITY_HIGH
             | LL_DMA_MODE_NORMAL | LL_DMA_PERIPH_NOINCREMENT
-            | LL_DMA_MEMORY_NOINCREMENT | LL_DMA_PDATAALIGN_BYTE
+            | LL_DMA_MEMORY_INCREMENT | LL_DMA_PDATAALIGN_BYTE
             | LL_DMA_MDATAALIGN_BYTE);
     LL_DMA_ConfigAddresses(
         DMA1,
@@ -96,7 +96,7 @@ void MX_DMA_SPI3_Init(void *tx_buf, void *rx_buf, uint32_t size)
         LL_DMA_STREAM_5,
         LL_DMA_DIRECTION_MEMORY_TO_PERIPH | LL_DMA_PRIORITY_HIGH
             | LL_DMA_MODE_NORMAL | LL_DMA_PERIPH_NOINCREMENT
-            | LL_DMA_MEMORY_NOINCREMENT | LL_DMA_PDATAALIGN_BYTE
+            | LL_DMA_MEMORY_INCREMENT | LL_DMA_PDATAALIGN_BYTE
             | LL_DMA_MDATAALIGN_BYTE);
     LL_DMA_ConfigAddresses(
         DMA1,

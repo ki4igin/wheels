@@ -61,25 +61,31 @@ int main(void)
 
     /* Initialize all configured peripherals */
     MX_GPIO_Init();
-    // MX_LWIP_Init();
+    MX_LWIP_Init();
     MX_USART1_UART_Init();
     MX_SPI1_Init();
     MX_TIM6_Init();
 
-    debug_printf("Init Complete\n");
-    // udp_server_init();
+    debug_printf("Base Init Complete\n");
+
+    delay_ms(100);
+    udp_server_init();
+    debug_printf("UDP server Init Complete\n");
     ads1278_init();
+    debug_printf("ads1278 Init Complete\n");
     ads1220_init();
+    
     LL_TIM_EnableCounter(TIM6);
     LL_TIM_EnableIT_UPDATE(TIM6);
+    ads1278_start();
 
     /* Infinite loop */
 
     while (1) {
-        // MX_LWIP_Process();
+        MX_LWIP_Process();
         if (ads1278_pac_iscomplete) {
             ads1278_pac_iscomplete = 0;
-            // udp_server_send(ads1278_pac, sizeof(struct ads1278_pac));
+            udp_server_send(ads1278_pac, sizeof(struct ads1278_pac));
         }
         if (ads1220_pac_iscomplete) {
             ads1220_pac_iscomplete = 0;
@@ -90,14 +96,12 @@ int main(void)
 
 void TIM6_Update_Callback(void)
 {
-    static uint32_t cnt = 0;
-    if (cnt++ & 0x01) {
-        ads1220_start_conv();
-    } else {
-        ads1220_start();
-    }
-
-    test_pin14_toggle();
+    // static uint32_t cnt = 0;
+    // if (cnt++ & 0x01) {
+    //     ads1220_start_conv();
+    // } else {
+    //     ads1220_rdata();
+    // }
 }
 
 void TIM6_CC1_Callback(void)
@@ -140,7 +144,7 @@ void SystemClock_Config(void)
     if (HAL_InitTick(TICK_INT_PRIORITY) != HAL_OK) {
         Error_Handler();
     }
-    LL_RCC_ConfigMCO(LL_RCC_MCO1SOURCE_HSE, LL_RCC_MCO1_DIV_1);
+    LL_RCC_ConfigMCO(LL_RCC_MCO1SOURCE_HSE, LL_RCC_MCO1_DIV_2);
     LL_RCC_ConfigMCO(LL_RCC_MCO2SOURCE_HSE, LL_RCC_MCO2_DIV_1);
 }
 

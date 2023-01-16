@@ -13,10 +13,10 @@ struct ads1220_pac {
 };
 
 extern struct ads1220_pac *ads1220_pac;
-extern uint32_t ads1220_pac_iscomplete;
+extern volatile uint32_t ads1220_pac_iscomplete;
 
 void ads1220_init(void);
-void ads1220_start(void);
+void ads1220_rdata(void);
 void ads1220_start_conv(void);
 void ads1220_stop(void);
 

@@ -6,6 +6,7 @@
 #include "stm32f4xx.h"
 #include "stm32f4xx_it.h"
 #include "ads1220_regs.h"
+#include "debug.h"
 
 #define ADS_CNT   8
 
@@ -26,7 +27,7 @@ struct reg_map reg_map = {
 static uint8_t rx_buf[ADS1220_BUF_SIZE] = {0};
 static uint8_t tx_buf[ADS1220_BUF_SIZE] = {0};
 
-uint32_t ads1220_pac_iscomplete = 1;
+volatile uint32_t ads1220_pac_iscomplete = 1;
 
 struct ads1220_pac *ads1220_pac;
 
@@ -35,7 +36,7 @@ struct ads1220_pac ads1220_pacs = {
     .cnt = 0,
     .data = {0}};
 
-uint32_t data_cnt;
+volatile uint32_t data_cnt;
 
 struct gpio {
     GPIO_TypeDef *port;
@@ -43,32 +44,18 @@ struct gpio {
 };
 
 const static struct gpio ads_cs_pins[ADS_CNT] = {
-    {RTD_NCS0_GPIO_Port, RTD_NCS0_Pin},
-    {RTD_NCS1_GPIO_Port, RTD_NCS1_Pin},
-    {RTD_NCS2_GPIO_Port, RTD_NCS2_Pin},
     {RTD_NCS3_GPIO_Port, RTD_NCS3_Pin},
-    {RTD_NCS4_GPIO_Port, RTD_NCS4_Pin},
-    {RTD_NCS5_GPIO_Port, RTD_NCS5_Pin},
+    {RTD_NCS2_GPIO_Port, RTD_NCS2_Pin},
+    {RTD_NCS7_GPIO_Port, RTD_NCS7_Pin},
     {RTD_NCS6_GPIO_Port, RTD_NCS6_Pin},
-    {RTD_NCS7_GPIO_Port, RTD_NCS7_Pin}
+    {RTD_NCS1_GPIO_Port, RTD_NCS1_Pin},
+    {RTD_NCS5_GPIO_Port, RTD_NCS5_Pin},
+    {RTD_NCS0_GPIO_Port, RTD_NCS0_Pin},
+    {RTD_NCS4_GPIO_Port, RTD_NCS4_Pin},
 };
 
 static struct gpio ads_cs;
 static uint32_t ads_num;
-
-static void ads1220_write_regmap(void)
-{
-    ads_num = 0;
-    ads_cs = ads_cs_pins[ads_num];
-    LL_GPIO_ResetOutputPin(ads_cs.port, ads_cs.pin);
-
-    MX_DMA_SPI3_SetSize(5);
-    tx_buf[0] = CMD_WREG | 3,
-    *(uint32_t *)&tx_buf[1] = *(uint32_t *)&reg_map;
-    // memcpy_u32(&reg_map, &tx_buf[1], 1);
-
-    MX_DMA_SPI3_Start();
-}
 
 static void continue_send_process(void)
 {
@@ -83,18 +70,58 @@ static void start_send_process(void)
     continue_send_process();
 }
 
+static void ads1220_write_regmap(void)
+{
+    MX_DMA_SPI3_SetSize(5);
+    tx_buf[0] = CMD_WREG | 3,
+    *(uint32_t *)&tx_buf[1] = *(uint32_t *)&reg_map;
+    // memcpy_u32(&reg_map, &tx_buf[1], 1);
+
+    start_send_process();
+}
+
+void ads1220_rreg()
+{
+    data_cnt = 0;
+    ads1220_pac_iscomplete = 0;
+    // чтение одного 3 регистра
+    tx_buf[0] = CMD_RREG | (3 << 2) | 0;
+    MX_DMA_SPI3_SetSize(2);
+    start_send_process();
+}
+
 void ads1220_init(void)
 {
     MX_SPI3_Init();
     MX_DMA_SPI3_Init(tx_buf, rx_buf, ADS1220_BUF_SIZE);
     LL_SPI_Enable(SPI3);
+    debug_printf("\nads1220 Init Start\n");
+
+    debug_printf("reg map:\n");
+    debug_printf("r0: 0x%02x; ", reg_map.r0.val);
+    debug_printf("r1: 0x%02x; ", reg_map.r1.val);
+    debug_printf("r2: 0x%02x; ", reg_map.r2.val);
+    debug_printf("r3: 0x%02x\n", reg_map.r3.val);
 
     ads1220_write_regmap();
+    delay_ms(3);
+    for (uint32_t i = 0; i < ADS1220_BUF_SIZE; i++) {
+        tx_buf[i] = 0;
+    }
+    ads1220_rreg();
+    while (ads1220_pac_iscomplete == 0) {
+        ;
+    }
+    for (uint32_t i = 0; i < ADS_CNT; i++) {
+        debug_printf("adc%d r3: 0x%02x\n", i, ads1220_pacs.data[i]);
+    }
+    debug_printf("ads1220 Init Complete\n");
 }
 
-void ads1220_start()
+void ads1220_rdata()
 {
     data_cnt = 0;
+    ads1220_pac_iscomplete = 0;
     tx_buf[0] = CMD_RDATA;
     MX_DMA_SPI3_SetSize(4);
     start_send_process();
@@ -118,8 +145,12 @@ void DMA1_SPI3_ReceiveComplete_Callback(void)
     uint32_t cmd = tx_buf[0];
     switch (cmd) {
     case CMD_RDATA: {
-        memcpy_u8(rx_buf, &ads1220_pacs.data[data_cnt], 3);
+        memcpy_u8(&rx_buf[1], &ads1220_pacs.data[data_cnt], 3);
         data_cnt += 3;
+    } break;
+    case (CMD_RREG | (3 << 2) | 0): {
+        ads1220_pacs.data[data_cnt] = rx_buf[1];
+        data_cnt++;
     } break;
     default:
         break;
@@ -131,12 +162,16 @@ void DMA1_SPI3_ReceiveComplete_Callback(void)
             ads1220_pacs.cnt++;
             ads1220_pac_iscomplete = 1;
             break;
+        case (CMD_RREG | (3 << 2) | 0):
+            ads1220_pac_iscomplete = 1;
+            break;
         default:
             break;
         }
 
         return;
     }
+    // debug_printf("%d\n", ads_num);
 
     continue_send_process();
 }

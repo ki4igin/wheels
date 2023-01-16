@@ -19,6 +19,7 @@ inline static void MX_DMA_SPI3_SetRxAddr(void *addr)
 inline static void MX_DMA_SPI3_SetSize(uint32_t size)
 {
     LL_DMA_SetDataLength(DMA1, LL_DMA_STREAM_0, size);
+    LL_DMA_SetDataLength(DMA1, LL_DMA_STREAM_5, size);
 }
 
 inline static void MX_DMA_SPI3_Start(void)
