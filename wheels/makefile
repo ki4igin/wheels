@@ -96,7 +96,7 @@ MCU := $(CPU) $(FPU) -mthumb
 # Optimization and Debug level
 ifeq ($(DEBUG), 1)
 C_DEFINES += DEBUG
-OPT := -O1 --debug
+OPT := -O2 --debug
 else
 OPT := -Os
 endif

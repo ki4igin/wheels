@@ -1,7 +1,7 @@
 #ifndef __ADS1220_H
 #define __ADS1220_H
 
-#define ADS1220_BUF_SIZE      4
+#define ADS1220_BUF_SIZE      5
 #define ADS1220_PAC_DATA_SIZE 24
 
 #include <stdint.h>

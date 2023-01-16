@@ -64,4 +64,6 @@ struct reg_map {
     union r3 r3;
 };
 
+static_assert(sizeof(struct reg_map) == 4, "size error reg_map");
+
 #endif
