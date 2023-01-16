@@ -16,10 +16,27 @@ inline static void MX_DMA_SPI3_SetRxAddr(void *addr)
     LL_DMA_SetMemoryAddress(DMA1, LL_DMA_STREAM_0, (uint32_t)addr);
 }
 
+inline static void MX_DMA_SPI2_SetRxAddr(void *addr)
+{
+    LL_DMA_SetMemoryAddress(DMA1, LL_DMA_STREAM_3, (uint32_t)addr);
+}
+
+inline static void MX_DMA_SPI2_SetSize(uint32_t size)
+{
+    LL_DMA_SetDataLength(DMA1, LL_DMA_STREAM_3, size);
+    LL_DMA_SetDataLength(DMA1, LL_DMA_STREAM_4, size);
+}
+
 inline static void MX_DMA_SPI3_SetSize(uint32_t size)
 {
     LL_DMA_SetDataLength(DMA1, LL_DMA_STREAM_0, size);
     LL_DMA_SetDataLength(DMA1, LL_DMA_STREAM_5, size);
+}
+
+inline static void MX_DMA_SPI2_Start(void)
+{
+    LL_DMA_EnableStream(DMA1, LL_DMA_STREAM_3);
+    LL_DMA_EnableStream(DMA1, LL_DMA_STREAM_4);
 }
 
 inline static void MX_DMA_SPI3_Start(void)

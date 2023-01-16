@@ -45,6 +45,7 @@ void PendSV_Handler(void);
 void SysTick_Handler(void);
 
 void DMA1_SPI2_HalfReceiveComplete_Callback(void);
+void DMA1_SPI2_ReceiveComplete_Callback(void);
 void DMA1_SPI3_ReceiveComplete_Callback(void);
 void TIM6_Update_Callback(void);
 void TIM6_CC1_Callback(void);
