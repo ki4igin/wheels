@@ -37,7 +37,7 @@ struct ads1220_pac ads1220_pacs = {
     .cnt = 0,
     .data = {0}};
 
-volatile uint32_t data_cnt;
+static uint8_t *pac_data;
 
 struct gpio {
     GPIO_TypeDef *port;
@@ -62,12 +62,14 @@ static void continue_send_process(void)
 {
     ads_cs = ads_cs_pins[ads_num];
     LL_GPIO_ResetOutputPin(ads_cs.port, ads_cs.pin);
+    MX_DMA_SPI3_SetRxAddr(pac_data);
     MX_DMA_SPI3_Start();
 }
 
 static void start_send_process(void)
 {
     ads_num = 0;
+    pac_data = ads1220_pacs.data;
     continue_send_process();
 }
 
@@ -98,7 +100,6 @@ static void ads1220_write_regmap(void)
 
 static void ads1220_rreg()
 {
-    data_cnt = 0;
     ads1220_pac_iscomplete = 0;
     // чтение одного 3-го регистра
     tx_buf[0] = CMD_RREG | (3 << 2) | 0;
@@ -129,15 +130,19 @@ void ads1220_init(void)
         ;
     }
     for (uint32_t i = 0; i < ADS_CNT; i++) {
-        if (ads1220_pacs.data[i] == reg_map.r3.val) {
+        if (ads1220_pacs.data[2 * i + 1] == reg_map.r3.val) {
             debug_printf(" ADC%d: ok\n", i + 1);
         } else {
             debug_printf(" ADC%d: error\n", i + 1);
         }
     }
     debug_printf("RTD ADC Init Complete\n");
-    ads1220_start_conv();
 
+    for (uint32_t i = 0; i < ADS1220_BUF_SIZE; i++) {
+        tx_buf[i] = 0;
+    }
+
+    ads1220_start_conv();
     MX_TIM6_Init();
     LL_TIM_ClearFlag_UPDATE(TIM6);
     LL_TIM_EnableIT_UPDATE(TIM6);
@@ -145,14 +150,11 @@ void ads1220_init(void)
 
 static void ads1220_rdata()
 {
-    data_cnt = 0;
     ads1220_pac_iscomplete = 0;
-    tx_buf[0] = CMD_RDATA;
-    MX_DMA_SPI3_SetSize(4);
+    tx_buf[0] = 0;
+    MX_DMA_SPI3_SetSize(3);
     start_send_process();
 }
-
-
 
 void ads1220_start(void)
 {
@@ -171,14 +173,11 @@ void DMA1_SPI3_ReceiveComplete_Callback(void)
 
     uint32_t cmd = tx_buf[0];
     switch (cmd) {
-    case CMD_RDATA: {
-        memcpy_u8(&rx_buf[1], &ads1220_pacs.data[data_cnt], 3);
-        // debug_printf("0x%02x 0x%02x 0x%02x\n", rx_buf[1], rx_buf[2], rx_buf[3]);
-        data_cnt += 3;
-    } break;
+    case 0:
+        pac_data += 3;
+        break;
     case (CMD_RREG | (3 << 2) | 0): {
-        ads1220_pacs.data[data_cnt] = rx_buf[1];
-        data_cnt++;
+        pac_data += 2;
     } break;
     default:
         break;
@@ -186,7 +185,7 @@ void DMA1_SPI3_ReceiveComplete_Callback(void)
 
     if (++ads_num == ADS_CNT) {
         switch (cmd) {
-        case CMD_RDATA:
+        case 0:
             ads1220_pacs.cnt++;
             ads1220_pac_iscomplete = 1;
             break;
@@ -199,7 +198,6 @@ void DMA1_SPI3_ReceiveComplete_Callback(void)
 
         return;
     }
-    // debug_printf("%d\n", ads_num);
 
     continue_send_process();
 }
