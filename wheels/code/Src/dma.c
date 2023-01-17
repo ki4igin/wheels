@@ -113,12 +113,12 @@ void MX_DMA_SPI3_Init(void *tx_buf, void *rx_buf, uint32_t size)
     /* DMA1_Stream3_IRQn interrupt configuration */
     NVIC_SetPriority(
         DMA1_Stream5_IRQn,
-        NVIC_EncodePriority(NVIC_GetPriorityGrouping(), 0, 0));
+        NVIC_EncodePriority(NVIC_GetPriorityGrouping(), 1, 0));
     NVIC_EnableIRQ(DMA1_Stream5_IRQn);
     /* DMA1_Stream4_IRQn interrupt configuration */
     NVIC_SetPriority(
         DMA1_Stream0_IRQn,
-        NVIC_EncodePriority(NVIC_GetPriorityGrouping(), 0, 0));
+        NVIC_EncodePriority(NVIC_GetPriorityGrouping(), 1, 0));
     NVIC_EnableIRQ(DMA1_Stream0_IRQn);
 }
 
