@@ -71,6 +71,20 @@ static void start_send_process(void)
     continue_send_process();
 }
 
+static void ads1220_reset()
+{
+    tx_buf[0] = CMD_RESET;
+    MX_DMA_SPI3_SetSize(1);
+    start_send_process();
+}
+
+static void ads1220_start_conv()
+{
+    tx_buf[0] = CMD_START;
+    MX_DMA_SPI3_SetSize(1);
+    start_send_process();
+}
+
 static void ads1220_write_regmap(void)
 {
     MX_DMA_SPI3_SetSize(5);
@@ -82,11 +96,11 @@ static void ads1220_write_regmap(void)
     start_send_process();
 }
 
-void ads1220_rreg()
+static void ads1220_rreg()
 {
     data_cnt = 0;
     ads1220_pac_iscomplete = 0;
-    // чтение одного 3 регистра
+    // чтение одного 3-го регистра
     tx_buf[0] = CMD_RREG | (3 << 2) | 0;
     MX_DMA_SPI3_SetSize(2);
     start_send_process();
@@ -98,8 +112,8 @@ void ads1220_init(void)
     MX_SPI3_Init();
     MX_DMA_SPI3_Init(tx_buf, rx_buf, ADS1220_BUF_SIZE);
     LL_SPI_Enable(SPI3);
+    ads1220_reset();
     debug_printf("RTD ADC Init Start\n");
-
     debug_printf(" reg map:\n");
     debug_printf(
         " r0: 0x%02x; r1: 0x%02x; r2: 0x%02x; r3: 0x%02x\n",
@@ -129,7 +143,7 @@ void ads1220_init(void)
     LL_TIM_EnableIT_UPDATE(TIM6);
 }
 
-void ads1220_rdata()
+static void ads1220_rdata()
 {
     data_cnt = 0;
     ads1220_pac_iscomplete = 0;
@@ -138,15 +152,11 @@ void ads1220_rdata()
     start_send_process();
 }
 
-void ads1220_start_conv()
-{
-    tx_buf[0] = CMD_START;
-    MX_DMA_SPI3_SetSize(1);
-    start_send_process();
-}
+
 
 void ads1220_start(void)
 {
+    LL_TIM_SetCounter(TIM6, 0);
     LL_TIM_EnableCounter(TIM6);
 }
 
