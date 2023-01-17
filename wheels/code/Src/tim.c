@@ -34,7 +34,7 @@ void MX_TIM6_Init(void)
 
     TIM_InitStruct.Prescaler = 8400 - 1;
     TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
-    TIM_InitStruct.Autoreload = 1000 - 1;    
+    TIM_InitStruct.Autoreload = 1000 - 1;
     LL_TIM_Init(TIM6, &TIM_InitStruct);
     LL_TIM_DisableARRPreload(TIM6);
     LL_TIM_SetTriggerOutput(TIM6, LL_TIM_TRGO_RESET);

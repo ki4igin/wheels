@@ -3,6 +3,7 @@
 #include "spi.h"
 #include "dma.h"
 #include "gpio.h"
+#include "tim.h"
 #include "stm32f4xx.h"
 #include "stm32f4xx_it.h"
 #include "ads1220_regs.h"
@@ -18,7 +19,7 @@
 #define CMD_WREG  0x40
 
 struct reg_map reg_map = {
-    .r0 = {.mux = 0, .gain = 0, .pga_pypass = 0},
+    .r0 = {.mux = 6, .gain = 3, .pga_pypass = 0},
     .r1 = {.bcs = 0, .ts = 0, .cm = 1, .mode = 0, .dr = 0},
     .r2 = {.idac = 5, .psw = 0, .f50_60 = 1, .vref = 1},
     .r3 = {.reserved = 0, .drdym = 0, .i1mux = 3, .i2mux = 4}
@@ -73,6 +74,7 @@ static void start_send_process(void)
 static void ads1220_write_regmap(void)
 {
     MX_DMA_SPI3_SetSize(5);
+
     tx_buf[0] = CMD_WREG | 3,
     *(uint32_t *)&tx_buf[1] = *(uint32_t *)&reg_map;
     // memcpy_u32(&reg_map, &tx_buf[1], 1);
@@ -92,16 +94,16 @@ void ads1220_rreg()
 
 void ads1220_init(void)
 {
+    ads1220_pac = &ads1220_pacs;
     MX_SPI3_Init();
     MX_DMA_SPI3_Init(tx_buf, rx_buf, ADS1220_BUF_SIZE);
     LL_SPI_Enable(SPI3);
-    debug_printf("\nads1220 Init Start\n");
+    debug_printf("RTD ADC Init Start\n");
 
-    debug_printf("reg map:\n");
-    debug_printf("r0: 0x%02x; ", reg_map.r0.val);
-    debug_printf("r1: 0x%02x; ", reg_map.r1.val);
-    debug_printf("r2: 0x%02x; ", reg_map.r2.val);
-    debug_printf("r3: 0x%02x\n", reg_map.r3.val);
+    debug_printf(" reg map:\n");
+    debug_printf(
+        " r0: 0x%02x; r1: 0x%02x; r2: 0x%02x; r3: 0x%02x\n",
+        reg_map.r0.val, reg_map.r1.val, reg_map.r2.val, reg_map.r3.val);
 
     ads1220_write_regmap();
     delay_ms(3);
@@ -113,9 +115,18 @@ void ads1220_init(void)
         ;
     }
     for (uint32_t i = 0; i < ADS_CNT; i++) {
-        debug_printf("adc%d r3: 0x%02x\n", i, ads1220_pacs.data[i]);
+        if (ads1220_pacs.data[i] == reg_map.r3.val) {
+            debug_printf(" ADC%d: ok\n", i + 1);
+        } else {
+            debug_printf(" ADC%d: error\n", i + 1);
+        }
     }
-    debug_printf("ads1220 Init Complete\n");
+    debug_printf("RTD ADC Init Complete\n");
+    ads1220_start_conv();
+
+    MX_TIM6_Init();
+    LL_TIM_ClearFlag_UPDATE(TIM6);
+    LL_TIM_EnableIT_UPDATE(TIM6);
 }
 
 void ads1220_rdata()
@@ -134,8 +145,14 @@ void ads1220_start_conv()
     start_send_process();
 }
 
+void ads1220_start(void)
+{
+    LL_TIM_EnableCounter(TIM6);
+}
+
 void ads1220_stop()
 {
+    LL_TIM_DisableCounter(TIM6);
 }
 
 void DMA1_SPI3_ReceiveComplete_Callback(void)
@@ -146,6 +163,7 @@ void DMA1_SPI3_ReceiveComplete_Callback(void)
     switch (cmd) {
     case CMD_RDATA: {
         memcpy_u8(&rx_buf[1], &ads1220_pacs.data[data_cnt], 3);
+        // debug_printf("0x%02x 0x%02x 0x%02x\n", rx_buf[1], rx_buf[2], rx_buf[3]);
         data_cnt += 3;
     } break;
     case (CMD_RREG | (3 << 2) | 0): {
@@ -174,4 +192,9 @@ void DMA1_SPI3_ReceiveComplete_Callback(void)
     // debug_printf("%d\n", ads_num);
 
     continue_send_process();
+}
+
+void TIM6_Update_Callback(void)
+{
+    ads1220_rdata();
 }

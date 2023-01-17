@@ -3,6 +3,7 @@
 #include "udp.h"
 #include "debug.h"
 #include "ads1278.h"
+#include "ads1220.h"
 
 #define UDP_SERVER_PORT                      5
 
@@ -15,6 +16,7 @@ const enum cmd {
     CMD_DISCONNECT = cmd2uint('c', 'm', 'd', '1'),
     CMD_START = cmd2uint('c', 'm', 'd', '2'),
     CMD_STOP = cmd2uint('c', 'm', 'd', '3'),
+    CMD_START_RTD = cmd2uint('c', 'm', 'd', '4'),
     CMD_ECHO = cmd2uint('c', 'm', 'd', '9')
 } cmd;
 
@@ -32,14 +34,16 @@ struct udp_pcb *pcb;
 
 struct ip4_addr ip;
 
-static void try_connect(enum cmd cmd, const ip_addr_t *addr, uint16_t port)
+static uint32_t try_connect(enum cmd cmd, const ip_addr_t *addr, uint16_t port)
 {
     if (cmd == CMD_CONNECT) {
         udp_connect(pcb, addr, port);
         udp_server_status = UDP_SERVER_CONNECTED;
         char *ip_client = ipaddr_ntoa(addr);
         debug_printf("client connected, ip: %s\n", ip_client);
+        return 1;
     }
+    return 0;
 }
 
 static void cmd_work(enum cmd cmd, struct pbuf *p)
@@ -54,13 +58,19 @@ static void cmd_work(enum cmd cmd, struct pbuf *p)
         break;
     case CMD_START:
         status = STATUS_STARTED;
-        debug_printf("start work\n");
+        debug_printf("start vibr\n");
         ads1278_start();
+        break;
+    case CMD_START_RTD:
+        status = STATUS_STARTED;
+        debug_printf("start rtd\n");
+        ads1220_start();
         break;
     case CMD_STOP:
         status = STATUS_STOPPED;
         debug_printf("stop work\n");
         ads1278_stop();
+        ads1220_stop();
         break;
     case CMD_ECHO:
         // udp_send(pcb, p);
@@ -81,7 +91,10 @@ static void recv_callback(
     enum cmd cmd = (enum cmd)__REV(*(uint32_t *)(p->payload));
 
     if (udp_server_status == UDP_SERVER_DISCONNECTED) {
-        try_connect(cmd, addr, port);
+        if (try_connect(cmd, addr, port)) {
+            udp_send(pcb, p);
+            ;
+        }
     }
 
     if (udp_server_status == UDP_SERVER_CONNECTED) {
@@ -99,6 +112,7 @@ void udp_server_init(void)
 
     udp_bind(pcb, &ip, UDP_SERVER_PORT);
     udp_recv(pcb, recv_callback, NULL);
+    debug_printf("UDP Server Started\n");
 }
 
 void udp_server_send(void *data, uint32_t size)

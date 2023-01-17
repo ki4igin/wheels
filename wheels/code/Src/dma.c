@@ -47,8 +47,6 @@ void MX_DMA_SPI2_Init(void *tx_buf, void *rx_buf, uint32_t size)
 
     LL_DMA_ClearFlag_TC3(DMA1);
     LL_DMA_EnableIT_TC(DMA1, LL_DMA_STREAM_3);
-    LL_DMA_ClearFlag_HT3(DMA1);
-    LL_DMA_EnableIT_HT(DMA1, LL_DMA_STREAM_3);
     LL_DMA_ClearFlag_TC4(DMA1);
     LL_DMA_EnableIT_TC(DMA1, LL_DMA_STREAM_4);
 
