@@ -154,7 +154,7 @@ void DMA1_Stream3_IRQHandler(void)
     if (LL_DMA_IsActiveFlag_TC3(DMA1)) {
         LL_DMA_ClearFlag_TC3(DMA1);
         LL_DMA_DisableStream(DMA1, LL_DMA_STREAM_3);
-        test_pin15_toggle();
+        // test_pin15_toggle();
         DMA1_SPI2_ReceiveComplete_Callback();
     }
     // if (LL_DMA_IsActiveFlag_HT3(DMA1)) {

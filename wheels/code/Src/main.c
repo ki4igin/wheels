@@ -72,6 +72,8 @@ int main(void)
     ads1220_init();
     udp_server_init();
     debug_printf("\nInit Complete\n\n");
+    test_pin14_enable();
+    test_pin15_disable();
 
     while (1) {
         MX_LWIP_Process();
@@ -81,6 +83,7 @@ int main(void)
         }
         if (ads1220_pac_iscomplete) {
             ads1220_pac_iscomplete = 0;
+            // ads1220_offset_corr(ads1220_pac->data);
             udp_server_send(ads1220_pac, sizeof(struct ads1220_pac));
         }
     }

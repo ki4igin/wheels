@@ -98,7 +98,7 @@ void DMA1_SPI2_ReceiveComplete_Callback(void)
         pac_data = ads1278_pacs[pac_num & 0x01].data;
         sample_num = 0;
         MX_DMA_SPI2_SetRxAddr(pac_data);
-        test_pin14_toggle();
+        // test_pin14_toggle();
         return;
     }
 

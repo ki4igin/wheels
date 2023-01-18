@@ -17,6 +17,7 @@ const enum cmd {
     CMD_START = cmd2uint('c', 'm', 'd', '2'),
     CMD_STOP = cmd2uint('c', 'm', 'd', '3'),
     CMD_START_RTD = cmd2uint('c', 'm', 'd', '4'),
+    CMD_START_RTD_CALIBR = cmd2uint('c', 'm', 'd', '5'),
     CMD_RESET = cmd2uint('c', 'm', 'd', 'r'),
     CMD_ECHO = cmd2uint('c', 'm', 'd', '9')
 } cmd;
@@ -66,6 +67,10 @@ static void cmd_work(enum cmd cmd, struct pbuf *p)
         status = STATUS_STARTED;
         debug_printf("start rtd\n");
         ads1220_start();
+        break;
+    case CMD_START_RTD_CALIBR:
+        status = STATUS_STARTED;
+        ads1220_start_calibr();
         break;
     case CMD_STOP:
         status = STATUS_STOPPED;
