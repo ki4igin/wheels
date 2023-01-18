@@ -70,7 +70,7 @@ static void cmd_work(enum cmd cmd, struct pbuf *p)
         break;
     case CMD_START_RTD_CALIBR:
         status = STATUS_STARTED;
-        ads1220_start_calibr();
+        // ads1220_start_calibr();
         break;
     case CMD_STOP:
         status = STATUS_STOPPED;

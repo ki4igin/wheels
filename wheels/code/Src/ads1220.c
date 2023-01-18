@@ -10,7 +10,7 @@
 #include "debug.h"
 #include "gpio_ex.h"
 
-#define ADS_CNT   1
+#define ADS_CNT   8
 
 #define CMD_RESET 0x06
 #define CMD_START 0x08
@@ -22,7 +22,7 @@
 const struct reg_map reg_map_work = {
     .r0 = {.mux = 6, .gain = 4, .pga_pypass = 0},
     .r1 = {.bcs = 0, .ts = 0, .cm = 1, .mode = 0, .dr = 0},
-    .r2 = {.idac = 5, .psw = 0, .f50_60 = 0, .vref = 1},
+    .r2 = {.idac = 5, .psw = 0, .f50_60 = 1, .vref = 1},
     .r3 = {.reserved = 0, .drdym = 0, .i1mux = 3, .i2mux = 4}
 };
 // const struct reg_map reg_map_work = {
@@ -34,7 +34,7 @@ const struct reg_map reg_map_work = {
 const struct reg_map reg_map_calibr = {
     .r0 = {.mux = 14, .gain = 4, .pga_pypass = 0},
     .r1 = {.bcs = 0, .ts = 0, .cm = 1, .mode = 0, .dr = 0},
-    .r2 = {.idac = 0, .psw = 0, .f50_60 = 0, .vref = 0},
+    .r2 = {.idac = 0, .psw = 0, .f50_60 = 1, .vref = 0},
     .r3 = {.reserved = 0, .drdym = 0, .i1mux = 0, .i2mux = 0}
 };
 
@@ -61,14 +61,14 @@ struct gpio {
 };
 
 const static struct gpio ads_cs_pins[ADS_CNT] = {
-    // {RTD_NCS3_GPIO_Port, RTD_NCS3_Pin},
-    // {RTD_NCS2_GPIO_Port, RTD_NCS2_Pin},
-    // {RTD_NCS7_GPIO_Port, RTD_NCS7_Pin},
-    // {RTD_NCS6_GPIO_Port, RTD_NCS6_Pin},
-    // {RTD_NCS1_GPIO_Port, RTD_NCS1_Pin},
-    // {RTD_NCS5_GPIO_Port, RTD_NCS5_Pin},
+    {RTD_NCS3_GPIO_Port, RTD_NCS3_Pin},
+    {RTD_NCS2_GPIO_Port, RTD_NCS2_Pin},
+    {RTD_NCS7_GPIO_Port, RTD_NCS7_Pin},
+    {RTD_NCS6_GPIO_Port, RTD_NCS6_Pin},
+    {RTD_NCS1_GPIO_Port, RTD_NCS1_Pin},
+    {RTD_NCS5_GPIO_Port, RTD_NCS5_Pin},
     {RTD_NCS0_GPIO_Port, RTD_NCS0_Pin},
-    // {RTD_NCS4_GPIO_Port, RTD_NCS4_Pin},
+    {RTD_NCS4_GPIO_Port, RTD_NCS4_Pin},
 };
 
 static struct gpio ads_cs;
