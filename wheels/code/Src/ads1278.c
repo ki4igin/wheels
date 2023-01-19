@@ -20,7 +20,7 @@ uint8_t *pac_data;
 uint32_t sample_num = {0};
 uint32_t pac_num = {0};
 
-struct ads1278_pac ads1278_pacs[2] = {
+static struct ads1278_pac ads1278_pacs[2] = {
     [0] = {.id = 1, .cnt = 0, .data = {0}},
     [1] = {.id = 1, .cnt = 1, .data = {0}}
 };

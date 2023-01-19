@@ -62,13 +62,21 @@ _Min_Stack_Size = 0x4000; /* required amount of stack */
 MEMORY
 {
 RAM (xrw)      : ORIGIN = 0x20000000, LENGTH = 128K
-CCMRAM (xrw)      : ORIGIN = 0x10000000, LENGTH = 64K
-FLASH (rx)      : ORIGIN = 0x8000000, LENGTH = 512K
+CCMRAM (xrw)   : ORIGIN = 0x10000000, LENGTH = 64K
+USERFLASH (rx) : ORIGIN = 0x8000000, LENGTH = 16K
+FLASH (rx)     : ORIGIN = 0x8004000, LENGTH = 496K
 }
 
 /* Define output sections */
 SECTIONS
 {
+  .user_flash :
+  {
+    . = ALIGN(4);
+    KEEP(*(.user_flash))
+    . = ALIGN(4);
+  } >USERFLASH
+
   /* The startup code goes first into FLASH */
   .isr_vector :
   {

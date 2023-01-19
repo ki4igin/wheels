@@ -84,7 +84,7 @@ int main(void)
         if (ads1220_pac_iscomplete) {
             ads1220_pac_iscomplete = 0;
             // ads1220_offset_corr(ads1220_pac->data);
-            udp_server_send(ads1220_pac, sizeof(struct ads1220_pac));
+            udp_server_send(ads1220_pac, 40);
         }
     }
 }
@@ -125,7 +125,7 @@ void SystemClock_Config(void)
     if (HAL_InitTick(TICK_INT_PRIORITY) != HAL_OK) {
         Error_Handler();
     }
-    LL_RCC_ConfigMCO(LL_RCC_MCO1SOURCE_HSE, LL_RCC_MCO1_DIV_1);
+    LL_RCC_ConfigMCO(LL_RCC_MCO1SOURCE_HSE, LL_RCC_MCO1_DIV_2);
     LL_RCC_ConfigMCO(LL_RCC_MCO2SOURCE_HSE, LL_RCC_MCO2_DIV_1);
 }
 

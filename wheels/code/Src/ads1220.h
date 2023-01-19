@@ -13,6 +13,7 @@ struct ads1220_pac {
         uint8_t data[ADS1220_PAC_DATA_SIZE];
         int32_t adc_val[ADS1220_PAC_DATA_SIZE / 4];
     };
+    uint32_t reserv;
 };
 
 extern struct ads1220_pac *ads1220_pac;

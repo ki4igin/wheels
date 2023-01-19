@@ -48,7 +48,7 @@ struct ads1220_pac *ads1220_pac;
 static uint32_t is_calibr = 0;
 static int32_t calibr_arr[ADS_CNT];
 
-struct ads1220_pac ads1220_pacs = {
+ struct ads1220_pac ads1220_pacs = {
     .id = 2,
     .cnt = 0,
     .data = {0}};
@@ -240,7 +240,6 @@ void DMA1_SPI3_ReceiveComplete_Callback(void)
     LL_GPIO_SetOutputPin(ads_cs.port, ads_cs.pin);
 
     uint32_t cmd = tx_buf[0];
-    pac_data += 4;
 
     if (++ads_num == ADS_CNT) {
         switch (cmd) {
@@ -251,10 +250,11 @@ void DMA1_SPI3_ReceiveComplete_Callback(void)
                 }
             }
             ads1220_pacs.cnt++;
-            ads1220_pac_iscomplete = 1;
+            ads1220_pac_iscomplete = 1;            
             break;
         case (CMD_RREG | (3 << 2) | 0):
             ads1220_pac_iscomplete = 1;
+            debug_printf("0x%x\n", (uint32_t)pac_data);
             break;
         default:
             break;
@@ -263,6 +263,7 @@ void DMA1_SPI3_ReceiveComplete_Callback(void)
         return;
     }
 
+    pac_data += 4;    
     continue_send_process();
 }
 
