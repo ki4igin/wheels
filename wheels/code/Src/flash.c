@@ -30,11 +30,14 @@ static void flash_program_u32(uint32_t adr, uint32_t data)
     }
 }
 
-static void flash_erase_sector(uint32_t sector)
+void flash_erase_sector(uint32_t sector)
 {
     while (FLASH->SR & FLASH_SR_BSY) {
         ;
     }
+
+    FLASH->CR &= ~FLASH_CR_PSIZE;
+    FLASH->CR |= FLASH_PSIZE_WORD;
 
     FLASH->CR &= ~FLASH_CR_SNB;
     FLASH->CR |= FLASH_CR_SER | (sector << FLASH_CR_SNB_Pos);
@@ -47,21 +50,15 @@ static void flash_erase_sector(uint32_t sector)
 
 void flash_memcpy_u32(uint32_t *src, uint32_t *dst, uint32_t size)
 {
-    if (((uint32_t)src < 0x8000000) || ((uint32_t)src > 0x8003FFF)) {
-        return;
-    }
-
     flash_unlock();
 
     FLASH->CR &= ~FLASH_CR_PSIZE;
     FLASH->CR |= FLASH_PSIZE_WORD;
 
-    flash_erase_sector(0);
-
     size >>= 2;
     do {
         flash_program_u32((uint32_t)dst++, *src++);
     } while (size--);
-    
+
     flash_lock();
 }

@@ -29,6 +29,7 @@
 #include "ads1278.h"
 #include "ads1220.h"
 #include "gpio_ex.h"
+#include "settings.h"
 
 /* Private includes ----------------------------------------------------------*/
 
@@ -66,6 +67,7 @@ int main(void)
     MX_SPI1_Init();
 
     debug_printf("\nInit Start\n");
+    settings_init();
 
     delay_ms(10);
     ads1278_init();
@@ -125,7 +127,7 @@ void SystemClock_Config(void)
     if (HAL_InitTick(TICK_INT_PRIORITY) != HAL_OK) {
         Error_Handler();
     }
-    LL_RCC_ConfigMCO(LL_RCC_MCO1SOURCE_HSE, LL_RCC_MCO1_DIV_2);
+    LL_RCC_ConfigMCO(LL_RCC_MCO1SOURCE_HSE, LL_RCC_MCO1_DIV_1);
     LL_RCC_ConfigMCO(LL_RCC_MCO2SOURCE_HSE, LL_RCC_MCO2_DIV_1);
 }
 
