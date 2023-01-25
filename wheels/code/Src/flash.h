@@ -37,7 +37,7 @@ static_assert((FLASH_SECTOR6_ADDR - FLASH_SECTOR5_ADDR) == FLASH_SECTOR5_SIZE,
 static_assert((FLASH_SECTOR7_ADDR - FLASH_SECTOR6_ADDR) == FLASH_SECTOR6_SIZE,
               "FLASH_SECTOR6_SIZE");
 
-void flash_memcpy_u32(uint32_t *src, uint32_t *dst, uint32_t size);
+void flash_memcpy_u32(void *src, void *dst, uint32_t size);
 void flash_erase_sector(uint32_t sector);
 
 #endif
