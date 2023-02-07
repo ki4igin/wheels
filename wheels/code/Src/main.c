@@ -81,6 +81,11 @@ int main(void)
         MX_LWIP_Process();
         if (ads1278_pac_iscomplete) {
             ads1278_pac_iscomplete = 0;
+            // if (ads1278_pac->data[0] != 0xFF)
+            // {
+            //     test_pin14_toggle();
+            // }
+            
             udp_server_send(ads1278_pac, sizeof(struct ads1278_pac));
         }
         if (ads1220_pac_iscomplete) {

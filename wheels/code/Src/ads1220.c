@@ -269,6 +269,5 @@ void DMA1_SPI3_ReceiveComplete_Callback(void)
 
 void TIM6_Update_Callback(void)
 {
-    test_pin14_toggle();
     ads1220_rdata();
 }

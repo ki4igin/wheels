@@ -1,7 +1,7 @@
 #ifndef __ADS1278_H
 #define __ADS1278_H
 
-#define ADS1278_PAC_SIZE (3 * 8 * 24)
+#define ADS1278_PAC_SIZE (3 * 7 * 24)
 
 #include <stdint.h>
 
