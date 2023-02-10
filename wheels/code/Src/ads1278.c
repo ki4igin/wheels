@@ -8,8 +8,8 @@
 #include "stm32f4xx_ll_gpio.h"
 #include "debug.h"
 
-#define ADS1278_BUF_SIZE      (3 * 8)
-#define ADS1278_SAMPLES_COUNT 21
+#define ADS1278_BUF_SIZE      (3 * 7)
+#define ADS1278_SAMPLES_COUNT 24
 
 static uint8_t rx_buf[ADS1278_BUF_SIZE] = {0};
 static uint8_t tx_buf[ADS1278_BUF_SIZE] = {0};
@@ -82,6 +82,8 @@ void ads1278_start()
     ads1278_pacs[pac_num & 0x01].cnt = pac_num;
     pac_data = ads1278_pacs[pac_num & 0x01].data;
     sample_num = 0;
+    // volatile uint8_t temp = SPI2->DR;
+    // (void)temp;
     MX_DMA_SPI2_SetRxAddr(pac_data);
 
     nrdy_int_enable();
@@ -102,6 +104,12 @@ void DMA1_SPI2_ReceiveComplete_Callback(void)
         ads1278_pac = &ads1278_pacs[pac_num & 0x03];
         ads1278_pac_iscomplete = 1;
         pac_num++;
+        if (ads1278_pac->data[0] != 0xFF) {
+            test_pin14_toggle();
+            // debug_printf("= %d", ads1278_pac->data[0]);
+            // delay_ms(100);
+            // NVIC_SystemReset();
+        }
 
         ads1278_pacs[pac_num & 0x03].cnt = pac_num;
         pac_data = ads1278_pacs[pac_num & 0x03].data;

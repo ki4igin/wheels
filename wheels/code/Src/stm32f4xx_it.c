@@ -151,11 +151,13 @@ void DMA1_Stream5_IRQHandler(void)
 
 void DMA1_Stream3_IRQHandler(void)
 {
-    LL_DMA_DisableStream(DMA1, LL_DMA_STREAM_3);
+    // LL_DMA_DisableStream(DMA1, LL_DMA_STREAM_3);
     if (LL_DMA_IsActiveFlag_TC3(DMA1)) {
         LL_DMA_ClearFlag_TC3(DMA1);
         // test_pin15_toggle();
         DMA1_SPI2_ReceiveComplete_Callback();
+        volatile uint8_t tmp = SPI2->DR;
+        (void)tmp;
     }
     if (LL_DMA_IsActiveFlag_TE3(DMA1)) {
         LL_DMA_ClearFlag_TE3(DMA1);
@@ -164,7 +166,7 @@ void DMA1_Stream3_IRQHandler(void)
 
 void DMA1_Stream4_IRQHandler(void)
 {
-    LL_DMA_DisableStream(DMA1, LL_DMA_STREAM_4);
+    // LL_DMA_DisableStream(DMA1, LL_DMA_STREAM_4);
     if (LL_DMA_IsActiveFlag_TC4(DMA1)) {
         LL_DMA_ClearFlag_TC4(DMA1);
         // DMA1_SPI2_ReceiveComplete_Callback();
