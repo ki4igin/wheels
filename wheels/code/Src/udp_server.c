@@ -6,11 +6,10 @@
 #include "ads1220.h"
 #include "settings.h"
 
-#define UDP_SERVER_PORT                      5
+#define UDP_SERVER_PORT 5
 
-#define cmd2uint(char1, char2, char3, char4) ((char1 << 24) + (char2 << 16) + (char3 << 8) + char4)
-
-const uint8_t IP_DEFAULT[4] = {192, 168, 0, 10};
+#define cmd2uint(char1, char2, char3, char4) \
+    ((char4 << 24) + (char3 << 16) + (char2 << 8) + char1)
 
 const enum cmd {
     CMD_CONNECT = cmd2uint('c', 'm', 'd', '0'),
@@ -18,13 +17,13 @@ const enum cmd {
     CMD_START_VIBR = cmd2uint('c', 'm', 'd', '2'),
     CMD_STOP = cmd2uint('c', 'm', 'd', '3'),
     CMD_START_RTD = cmd2uint('c', 'm', 'd', '4'),
-    CMD_START_RTD_CALIBR = cmd2uint('c', 'm', 'd', '5'),
-    CMD_START_VIBR_CALIBR = cmd2uint('c', 'm', 'd', '6'),
+    CMD_SETDIV_VIBR = cmd2uint('c', 'm', 'd', '5'),
+    CMD_SETCH_VIBR = cmd2uint('c', 'm', 'd', '6'),
     CMD_CHANGE_IP = cmd2uint('c', 'm', 'd', '7'),
-    CMD_SETDIV_VIBR = cmd2uint('c', 'm', 'd', 'a'),
-    CMD_SETCH_VIBR = cmd2uint('c', 'm', 'd', 'b'),
-    CMD_RESET = cmd2uint('c', 'm', 'd', 'r'),
-    CMD_ECHO = cmd2uint('c', 'm', 'd', '9')
+    // CMD_START_RTD_CALIBR = cmd2uint('c', 'm', 'd', '5'),
+    // CMD_START_VIBR_CALIBR = cmd2uint('c', 'm', 'd', '6'),
+    CMD_ECHO = cmd2uint('c', 'm', 'd', '9'),
+    CMD_RESET = cmd2uint('c', 'm', 'd', 'r')
 } cmd;
 
 enum udp_server_status {
@@ -71,10 +70,10 @@ static void cmd_work(enum cmd cmd, struct pbuf *p)
         status = STATUS_STARTED;
         ads1220_start();
         break;
-    case CMD_START_RTD_CALIBR:
-        status = STATUS_STARTED;
-        // ads1220_start_calibr();
-        break;
+    // case CMD_START_RTD_CALIBR:
+    //     status = STATUS_STARTED;
+    //     // ads1220_start_calibr();
+    //     break;
     case CMD_STOP:
         status = STATUS_STOPPED;
         ads1278_stop();
@@ -91,28 +90,35 @@ static void cmd_work(enum cmd cmd, struct pbuf *p)
         break;
     case CMD_CHANGE_IP:
         status = STATUS_STOPPED;
+        ads1278_stop();
+        ads1220_stop();
         delay_ms(10);
         udp_disconnect(pcb);
         udp_server_status = UDP_SERVER_DISCONNECTED;
         debug_printf("DEV: client disconnected\n");
 
-        ip.addr = __REV(*(uint32_t *)(p->payload + 4));
+        ip.addr = *(uint32_t *)(p->payload + 4);
         char *ip_str = ipaddr_ntoa(&ip);
         debug_printf("DEV: ip change to %s\n", ip_str);
 
         settings_change_ipaddr(ip.addr);
 
+        debug_printf("DEV: reset...\n");
+        delay_ms(100);
+        udp_send(pcb, p);
+        NVIC_SystemReset();
+
         break;
     case CMD_SETDIV_VIBR:
         status = STATUS_STOPPED;
         ads1278_stop();
-        arg = __REV(*(uint32_t *)(p->payload + 4));
+        arg = *(uint32_t *)(p->payload + 4);
         ads1278_setdiv(arg);
         break;
     case CMD_SETCH_VIBR:
         status = STATUS_STOPPED;
         ads1278_stop();
-        arg = __REV(*(uint32_t *)(p->payload + 4));
+        arg = *(uint32_t *)(p->payload + 4);
         ads1278_setch(arg);
         break;
     case CMD_ECHO:
@@ -131,7 +137,7 @@ static void recv_callback(
     const ip_addr_t *addr,
     u16_t port)
 {
-    enum cmd cmd = (enum cmd)__REV(*(uint32_t *)(p->payload));
+    enum cmd cmd = (enum cmd)(*(uint32_t *)(p->payload));
 
     if (udp_server_status == UDP_SERVER_DISCONNECTED) {
         if (try_connect(cmd, addr, port)) {
@@ -155,7 +161,8 @@ void udp_server_init(void)
 
     udp_bind(pcb, &ip, UDP_SERVER_PORT);
     udp_recv(pcb, recv_callback, NULL);
-    debug_printf("DEV: server started\n");
+    char *ip_str = ipaddr_ntoa(&ip);
+    debug_printf("DEV: server %s started\n", ip_str);
 }
 
 void udp_server_send(void *data, uint32_t size)
