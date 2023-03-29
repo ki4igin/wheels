@@ -66,33 +66,25 @@ int main(void)
     MX_USART1_UART_Init();
     MX_SPI1_Init();
 
-    debug_printf("\nInit Start\n");
+    debug_printf("\nDEV: init start\n");
     settings_init();
 
     delay_ms(10);
     ads1278_init();
     ads1220_init();
     udp_server_init();
-    debug_printf("\nInit Complete\n\n");
+    debug_printf("DEV: init complete\n");
     test_pin14_enable();
     test_pin15_disable();
 
     while (1) {
         MX_LWIP_Process();
         if (ads1278_pac_iscomplete) {
-            ads1278_pac_iscomplete = 0;
-            // if (ads1278_pac->data[0] != 0xFF)
-            // {
-            //     debug_printf("= %d", ads1278_pac->data[0]);
-            //     // delay_ms(100);
-            //     // NVIC_SystemReset();
-            // }
-            
+            ads1278_pac_iscomplete = 0;            
             udp_server_send(ads1278_pac, ads1278_pac_size);
         }
         if (ads1220_pac_iscomplete) {
             ads1220_pac_iscomplete = 0;
-            // ads1220_offset_corr(ads1220_pac->data);
             udp_server_send(ads1220_pac, 40);
         }
     }

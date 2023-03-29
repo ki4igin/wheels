@@ -5,6 +5,7 @@
 
 #include <stdint.h>
 #include "stm32f4xx_ll_rcc.h"
+#include "debug.h"
 
 struct ads1278_pac {
     const uint32_t id;
@@ -41,8 +42,10 @@ static inline void ads1278_setdiv(uint32_t div)
         LL_RCC_ConfigMCO(LL_RCC_MCO1SOURCE_HSE, LL_RCC_MCO1_DIV_5);
         break;    
     default:
-        break;
+        debug_printf("VIBR ADC: div %d not correct\n", div);
+        return;
     }
+    debug_printf("VIBR ADC: div changed to %d\n", div);
 }
 
 #endif

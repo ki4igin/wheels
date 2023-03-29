@@ -46,7 +46,7 @@ static uint32_t try_connect(enum cmd cmd, const ip_addr_t *addr, uint16_t port)
         udp_connect(pcb, addr, port);
         udp_server_status = UDP_SERVER_CONNECTED;
         char *ip_client = ipaddr_ntoa(addr);
-        debug_printf("client connected, ip: %s\n", ip_client);
+        debug_printf("DEV: client %s connected\n", ip_client);
         return 1;
     }
     return 0;
@@ -61,16 +61,14 @@ static void cmd_work(enum cmd cmd, struct pbuf *p)
         delay_ms(10);
         udp_disconnect(pcb);
         udp_server_status = UDP_SERVER_DISCONNECTED;
-        debug_printf("client disconnected\n");
+        debug_printf("DEV: client disconnected\n");
         break;
     case CMD_START_VIBR:
         status = STATUS_STARTED;
-        debug_printf("start vibr\n");
         ads1278_start();
         break;
     case CMD_START_RTD:
         status = STATUS_STARTED;
-        debug_printf("start rtd\n");
         ads1220_start();
         break;
     case CMD_START_RTD_CALIBR:
@@ -79,7 +77,6 @@ static void cmd_work(enum cmd cmd, struct pbuf *p)
         break;
     case CMD_STOP:
         status = STATUS_STOPPED;
-        debug_printf("stop work\n");
         ads1278_stop();
         ads1220_stop();
         break;
@@ -87,7 +84,7 @@ static void cmd_work(enum cmd cmd, struct pbuf *p)
         status = STATUS_STOPPED;
         ads1278_stop();
         ads1220_stop();
-        debug_printf("reset...\n");
+        debug_printf("DEV: reset...\n");
         delay_ms(100);
         udp_send(pcb, p);
         NVIC_SystemReset();
@@ -97,29 +94,25 @@ static void cmd_work(enum cmd cmd, struct pbuf *p)
         delay_ms(10);
         udp_disconnect(pcb);
         udp_server_status = UDP_SERVER_DISCONNECTED;
-        debug_printf("client disconnected\n");
+        debug_printf("DEV: client disconnected\n");
 
         ip.addr = __REV(*(uint32_t *)(p->payload + 4));
         char *ip_str = ipaddr_ntoa(&ip);
-        debug_printf("ip change to: %s\n", ip_str);
+        debug_printf("DEV: ip change to %s\n", ip_str);
 
         settings_change_ipaddr(ip.addr);
 
         break;
     case CMD_SETDIV_VIBR:
         status = STATUS_STOPPED;
-        debug_printf("stop vibr work\n");
         ads1278_stop();
         arg = __REV(*(uint32_t *)(p->payload + 4));
-        debug_printf("change vibr div to: %d\n", arg);
         ads1278_setdiv(arg);
         break;
     case CMD_SETCH_VIBR:
         status = STATUS_STOPPED;
-        debug_printf("stop vibr work\n");
         ads1278_stop();
         arg = __REV(*(uint32_t *)(p->payload + 4));
-        debug_printf("TODO %x\n", arg);
         ads1278_setch(arg);
         break;
     case CMD_ECHO:
@@ -162,7 +155,7 @@ void udp_server_init(void)
 
     udp_bind(pcb, &ip, UDP_SERVER_PORT);
     udp_recv(pcb, recv_callback, NULL);
-    debug_printf("UDP Server Started\n");
+    debug_printf("DEV: server started\n");
 }
 
 void udp_server_send(void *data, uint32_t size)
