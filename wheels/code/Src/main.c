@@ -60,14 +60,16 @@ int main(void)
     /* Configure the system clock */
     SystemClock_Config();
 
-    /* Initialize all configured peripherals */
+    settings_init();
+
+    /* Initialize all configured peripherals */    
     MX_GPIO_Init();
     MX_LWIP_Init();
     MX_USART1_UART_Init();
     MX_SPI1_Init();
 
     debug_printf("\nDEV: init start\n");
-    settings_init();
+    
 
     delay_ms(10);
     ads1278_init();
