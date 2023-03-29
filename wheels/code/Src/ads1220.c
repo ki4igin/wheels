@@ -126,8 +126,8 @@ void ads1220_init(void)
     LL_SPI_Enable(SPI3);
 
     ads1220_reset();
-    debug_printf("RTD ADC Init Start\n");
-    debug_printf(" reg map:\n");
+    debug_printf("RTD ADC: init start\n");
+    debug_printf("RTD ADC: reg map\n");
     debug_printf(
         " r0: 0x%02x; r1: 0x%02x; r2: 0x%02x; r3: 0x%02x\n",
         reg_map_work.r0.val, reg_map_work.r1.val,
@@ -141,16 +141,17 @@ void ads1220_init(void)
     while (ads1220_pac_iscomplete == 0) {
         ;
     }
+    debug_printf("RTD ADC: rtd check\n");
     for (uint32_t i = 0; i < ADS_CNT; i++) {
         if (ads1220_pacs.data[4 * i + 1] == reg_map_work.r3.val) {
-            debug_printf(" ADC%d: ok\n", i + 1);
+            debug_printf(" rtd%d: ok\n", i + 1);
         } else {
-            debug_printf(" ADC%d: error\n", i + 1);
+            debug_printf(" rtd%d: error\n", i + 1);
         }
     }
     arr_clear_u8(ads1220_pacs.data, ADS1220_PAC_DATA_SIZE);
 
-    debug_printf("RTD ADC Init Complete\n");
+    debug_printf("RTD ADC: init complete\n");
 
     MX_TIM6_Init();
     LL_TIM_ClearFlag_UPDATE(TIM6);
@@ -169,8 +170,8 @@ void ads1220_start_calibr(void)
 {
     arr_clear_u32(calibr_arr, ADS_CNT);
     ads1220_reset();
-    debug_printf("RTD ADC Calibration Start\n");
-    debug_printf(" reg map:\n");
+    debug_printf("RTD ADC: calibration start\n");
+    debug_printf("RTD ADC: reg map\n");
     debug_printf(
         " r0: 0x%02x; r1: 0x%02x; r2: 0x%02x; r3: 0x%02x\n",
         reg_map_calibr.r0.val, reg_map_calibr.r1.val,
@@ -189,10 +190,10 @@ static void ads1220_stop_calibr(void)
 {
     ads1220_reset();
 
-    debug_printf("RTD ADC Calibration Complete\n");
+    debug_printf("RTD ADC: calibration complete\n");
     for (uint32_t i = 0; i < ADS_CNT; i++) {
         calibr_arr[i] /= (int32_t)ads1220_pacs.cnt;
-        debug_printf(" ADC%d val: %d\n", i + 1, calibr_arr[i]);
+        debug_printf(" rtd%d val: %d\n", i + 1, calibr_arr[i]);
     }
     ads1220_write_regmap(&reg_map_work);
     delay_ms(5);
@@ -202,6 +203,7 @@ static void ads1220_stop_calibr(void)
 
 void ads1220_start(void)
 {
+    debug_printf("RTD ADC: start\n");
     ads1220_start_conv();
     ads1220_pacs.cnt = 0;
     LL_TIM_SetCounter(TIM6, 0);
@@ -215,6 +217,8 @@ void ads1220_stop()
         is_calibr = 0;
         ads1220_stop_calibr();
     }
+    debug_printf("RTD ADC: stop\n");
+
 }
 
 void ads1220_offset_corr(void *data)
@@ -249,7 +253,6 @@ void DMA1_SPI3_ReceiveComplete_Callback(void)
             break;
         case (CMD_RREG | (3 << 2) | 0):
             ads1220_pac_iscomplete = 1;
-            debug_printf("0x%x\n", (uint32_t)pac_data);
             break;
         default:
             break;

@@ -57,7 +57,7 @@ void DebugSendWord(int data)
 void _error_handler(const char *file, uint32_t line)
 {
     __disable_irq();
-    debug_printf("Error: %s, %d", file, line);
+    debug_printf("DEV: error: %s, %d", file, line);
     while (1) {
         delay_ms(300);
         // led_toggle();

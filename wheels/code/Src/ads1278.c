@@ -89,18 +89,18 @@ static void nrdy_int_disable()
 
 void ads1278_init(void)
 {
+    debug_printf("VIBR ADC: init start\n");
+
     MX_SPI2_Init();
     MX_DMA_SPI2_Init(tx_buf, rx_buf, ADS1278_BUF_MAX_SIZE);
 
-    LL_GPIO_ResetOutputPin(VIBR_NPWD6_GPIO_Port, VIBR_NPWD6_Pin);
-    LL_GPIO_ResetOutputPin(VIBR_NPWD7_GPIO_Port, VIBR_NPWD7_Pin);
-    set_buf_size(6);
+    ads1278_setch(0x3F);
 
     LL_SPI_Enable(SPI2);
 
     nrdy_int_init();
 
-    debug_printf("VIBR ADC Init Complete\n");
+    debug_printf("VIBR ADC: init complete\n");
 }
 
 void ads1278_start()
@@ -116,11 +116,13 @@ void ads1278_start()
     MX_DMA_SPI2_SetRxAddr(pac_data);
 
     nrdy_int_enable();
+    debug_printf("VIBR ADC: start\n");
 }
 
 void ads1278_stop()
 {
     nrdy_int_disable();
+    debug_printf("VIBR ADC: stop\n");
 }
 
 void DMA1_SPI2_ReceiveComplete_Callback(void)
@@ -135,9 +137,6 @@ void DMA1_SPI2_ReceiveComplete_Callback(void)
         pac_num++;
         if (ads1278_pac->data[0] != 0xFF) {
             test_pin14_toggle();
-            // debug_printf("= %d", ads1278_pac->data[0]);
-            // delay_ms(100);
-            // NVIC_SystemReset();
         }
 
         ads1278_pacs[pac_num & 0x03].cnt = pac_num;
@@ -159,13 +158,16 @@ void ads1278_setch(uint32_t mask)
     }
 
     uint32_t ch_cnt = 0;
+    debug_printf("VIBR ADC: set channel\n");
     for (uint32_t i = 0; i < 8; i++) {
         struct gpio gpio = ads_npwd_pins[i];
         if (mask & (1 << i)) {
             ch_cnt++;
             LL_GPIO_SetOutputPin(gpio.port, gpio.pin);
+            debug_printf(" ch%d on\n", i);
         } else {
             LL_GPIO_ResetOutputPin(gpio.port, gpio.pin);
+            debug_printf(" ch%d off\n", i);
         }
     }
     set_buf_size(ch_cnt);
