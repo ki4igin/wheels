@@ -55,11 +55,6 @@ static int32_t calibr_arr[ADS_CNT];
 
 static uint8_t *pac_data;
 
-struct gpio {
-    GPIO_TypeDef *port;
-    uint32_t pin;
-};
-
 const static struct gpio ads_cs_pins[ADS_CNT] = {
     {RTD_NCS3_GPIO_Port, RTD_NCS3_Pin},
     {RTD_NCS2_GPIO_Port, RTD_NCS2_Pin},
