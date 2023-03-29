@@ -11,6 +11,7 @@
                 "all",
                 "GCC_PATH=C:/toolchain/gcc-arm-none-eabi-9-2020-q2-update-win32/bin",
                 "-s",
+                "RELEASE=1"
             ],
             "group": {
                 "kind": "build",

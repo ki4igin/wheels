@@ -4,6 +4,11 @@
 
 #include "main.h"
 
+struct gpio {
+    GPIO_TypeDef *port;
+    uint32_t pin;
+};
+
 inline static void test_pin14_enable(void)
 {
     LL_GPIO_SetOutputPin(PC14_GPIO_Port, PC14_Pin);

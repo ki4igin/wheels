@@ -98,6 +98,7 @@ ifeq ($(DEBUG), 1)
 C_DEFINES += DEBUG
 OPT := -O1 --debug
 else
+C_DEFINES += DEBUG
 OPT := -Os
 endif
 

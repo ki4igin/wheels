@@ -29,6 +29,7 @@
 #include "ads1278.h"
 #include "ads1220.h"
 #include "gpio_ex.h"
+#include "settings.h"
 
 /* Private includes ----------------------------------------------------------*/
 
@@ -66,22 +67,33 @@ int main(void)
     MX_SPI1_Init();
 
     debug_printf("\nInit Start\n");
+    settings_init();
 
     delay_ms(10);
     ads1278_init();
     ads1220_init();
     udp_server_init();
     debug_printf("\nInit Complete\n\n");
+    test_pin14_enable();
+    test_pin15_disable();
 
     while (1) {
         MX_LWIP_Process();
         if (ads1278_pac_iscomplete) {
             ads1278_pac_iscomplete = 0;
-            udp_server_send(ads1278_pac, sizeof(struct ads1278_pac));
+            // if (ads1278_pac->data[0] != 0xFF)
+            // {
+            //     debug_printf("= %d", ads1278_pac->data[0]);
+            //     // delay_ms(100);
+            //     // NVIC_SystemReset();
+            // }
+            
+            udp_server_send(ads1278_pac, ads1278_pac_size);
         }
         if (ads1220_pac_iscomplete) {
             ads1220_pac_iscomplete = 0;
-            udp_server_send(ads1220_pac, sizeof(struct ads1220_pac));
+            // ads1220_offset_corr(ads1220_pac->data);
+            udp_server_send(ads1220_pac, 40);
         }
     }
 }
@@ -123,7 +135,7 @@ void SystemClock_Config(void)
         Error_Handler();
     }
     LL_RCC_ConfigMCO(LL_RCC_MCO1SOURCE_HSE, LL_RCC_MCO1_DIV_1);
-    LL_RCC_ConfigMCO(LL_RCC_MCO2SOURCE_HSE, LL_RCC_MCO2_DIV_1);
+    LL_RCC_ConfigMCO(LL_RCC_MCO2SOURCE_HSE, LL_RCC_MCO2_DIV_1);    
 }
 
 /**

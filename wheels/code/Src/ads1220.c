@@ -8,6 +8,7 @@
 #include "stm32f4xx_it.h"
 #include "ads1220_regs.h"
 #include "debug.h"
+#include "gpio_ex.h"
 
 #define ADS_CNT   8
 
@@ -18,11 +19,23 @@
 #define CMD_RREG  0x20
 #define CMD_WREG  0x40
 
-struct reg_map reg_map = {
-    .r0 = {.mux = 6, .gain = 3, .pga_pypass = 0},
+const struct reg_map reg_map_work = {
+    .r0 = {.mux = 6, .gain = 4, .pga_pypass = 0},
     .r1 = {.bcs = 0, .ts = 0, .cm = 1, .mode = 0, .dr = 0},
     .r2 = {.idac = 5, .psw = 0, .f50_60 = 1, .vref = 1},
     .r3 = {.reserved = 0, .drdym = 0, .i1mux = 3, .i2mux = 4}
+};
+// const struct reg_map reg_map_work = {
+//     .r0 = {.mux = 14, .gain = 4, .pga_pypass = 0},
+//     .r1 = {.bcs = 0, .ts = 0, .cm = 1, .mode = 0, .dr = 0},
+//     .r2 = {.idac = 0, .psw = 0, .f50_60 = 1, .vref = 0},
+//     .r3 = {.reserved = 0, .drdym = 0, .i1mux = 0, .i2mux = 0}
+// };
+const struct reg_map reg_map_calibr = {
+    .r0 = {.mux = 14, .gain = 4, .pga_pypass = 0},
+    .r1 = {.bcs = 0, .ts = 0, .cm = 1, .mode = 0, .dr = 0},
+    .r2 = {.idac = 0, .psw = 0, .f50_60 = 1, .vref = 0},
+    .r3 = {.reserved = 0, .drdym = 0, .i1mux = 0, .i2mux = 0}
 };
 
 static uint8_t rx_buf[ADS1220_BUF_SIZE] = {0};
@@ -32,17 +45,15 @@ volatile uint32_t ads1220_pac_iscomplete = 1;
 
 struct ads1220_pac *ads1220_pac;
 
-struct ads1220_pac ads1220_pacs = {
+static uint32_t is_calibr = 0;
+static int32_t calibr_arr[ADS_CNT];
+
+ struct ads1220_pac ads1220_pacs = {
     .id = 2,
     .cnt = 0,
     .data = {0}};
 
-volatile uint32_t data_cnt;
-
-struct gpio {
-    GPIO_TypeDef *port;
-    uint32_t pin;
-};
+static uint8_t *pac_data;
 
 const static struct gpio ads_cs_pins[ADS_CNT] = {
     {RTD_NCS3_GPIO_Port, RTD_NCS3_Pin},
@@ -62,12 +73,14 @@ static void continue_send_process(void)
 {
     ads_cs = ads_cs_pins[ads_num];
     LL_GPIO_ResetOutputPin(ads_cs.port, ads_cs.pin);
+    MX_DMA_SPI3_SetRxAddr(pac_data);
     MX_DMA_SPI3_Start();
 }
 
 static void start_send_process(void)
 {
     ads_num = 0;
+    pac_data = ads1220_pacs.data;
     continue_send_process();
 }
 
@@ -85,20 +98,19 @@ static void ads1220_start_conv()
     start_send_process();
 }
 
-static void ads1220_write_regmap(void)
+static void ads1220_write_regmap(const struct reg_map *preg_map)
 {
-    MX_DMA_SPI3_SetSize(5);
 
     tx_buf[0] = CMD_WREG | 3,
-    *(uint32_t *)&tx_buf[1] = *(uint32_t *)&reg_map;
+    *(uint32_t *)&tx_buf[1] = *(uint32_t *)preg_map;
     // memcpy_u32(&reg_map, &tx_buf[1], 1);
 
+    MX_DMA_SPI3_SetSize(5);
     start_send_process();
 }
 
 static void ads1220_rreg()
 {
-    data_cnt = 0;
     ads1220_pac_iscomplete = 0;
     // чтение одного 3-го регистра
     tx_buf[0] = CMD_RREG | (3 << 2) | 0;
@@ -112,31 +124,33 @@ void ads1220_init(void)
     MX_SPI3_Init();
     MX_DMA_SPI3_Init(tx_buf, rx_buf, ADS1220_BUF_SIZE);
     LL_SPI_Enable(SPI3);
+
     ads1220_reset();
     debug_printf("RTD ADC Init Start\n");
     debug_printf(" reg map:\n");
     debug_printf(
         " r0: 0x%02x; r1: 0x%02x; r2: 0x%02x; r3: 0x%02x\n",
-        reg_map.r0.val, reg_map.r1.val, reg_map.r2.val, reg_map.r3.val);
+        reg_map_work.r0.val, reg_map_work.r1.val,
+        reg_map_work.r2.val, reg_map_work.r3.val);
 
-    ads1220_write_regmap();
-    delay_ms(3);
-    for (uint32_t i = 0; i < ADS1220_BUF_SIZE; i++) {
-        tx_buf[i] = 0;
-    }
+    ads1220_write_regmap(&reg_map_work);
+    delay_ms(5);
+    arr_clear_u8(tx_buf, ADS1220_BUF_SIZE);
+
     ads1220_rreg();
     while (ads1220_pac_iscomplete == 0) {
         ;
     }
     for (uint32_t i = 0; i < ADS_CNT; i++) {
-        if (ads1220_pacs.data[i] == reg_map.r3.val) {
+        if (ads1220_pacs.data[4 * i + 1] == reg_map_work.r3.val) {
             debug_printf(" ADC%d: ok\n", i + 1);
         } else {
             debug_printf(" ADC%d: error\n", i + 1);
         }
     }
+    arr_clear_u8(ads1220_pacs.data, ADS1220_PAC_DATA_SIZE);
+
     debug_printf("RTD ADC Init Complete\n");
-    ads1220_start_conv();
 
     MX_TIM6_Init();
     LL_TIM_ClearFlag_UPDATE(TIM6);
@@ -145,17 +159,51 @@ void ads1220_init(void)
 
 static void ads1220_rdata()
 {
-    data_cnt = 0;
     ads1220_pac_iscomplete = 0;
-    tx_buf[0] = CMD_RDATA;
-    MX_DMA_SPI3_SetSize(4);
+    tx_buf[0] = 0;
+    MX_DMA_SPI3_SetSize(3);
     start_send_process();
 }
 
+void ads1220_start_calibr(void)
+{
+    arr_clear_u32(calibr_arr, ADS_CNT);
+    ads1220_reset();
+    debug_printf("RTD ADC Calibration Start\n");
+    debug_printf(" reg map:\n");
+    debug_printf(
+        " r0: 0x%02x; r1: 0x%02x; r2: 0x%02x; r3: 0x%02x\n",
+        reg_map_calibr.r0.val, reg_map_calibr.r1.val,
+        reg_map_calibr.r2.val, reg_map_calibr.r3.val);
 
+    ads1220_write_regmap(&reg_map_calibr);
+    delay_ms(5);
+    arr_clear_u8(tx_buf, ADS1220_BUF_SIZE);
+    arr_clear_u8(ads1220_pacs.data, ADS1220_PAC_DATA_SIZE);
+
+    is_calibr = 1;
+    ads1220_start();
+}
+
+static void ads1220_stop_calibr(void)
+{
+    ads1220_reset();
+
+    debug_printf("RTD ADC Calibration Complete\n");
+    for (uint32_t i = 0; i < ADS_CNT; i++) {
+        calibr_arr[i] /= (int32_t)ads1220_pacs.cnt;
+        debug_printf(" ADC%d val: %d\n", i + 1, calibr_arr[i]);
+    }
+    ads1220_write_regmap(&reg_map_work);
+    delay_ms(5);
+    arr_clear_u8(tx_buf, ADS1220_BUF_SIZE);
+    arr_clear_u8(ads1220_pacs.data, ADS1220_PAC_DATA_SIZE);
+}
 
 void ads1220_start(void)
 {
+    ads1220_start_conv();
+    ads1220_pacs.cnt = 0;
     LL_TIM_SetCounter(TIM6, 0);
     LL_TIM_EnableCounter(TIM6);
 }
@@ -163,6 +211,23 @@ void ads1220_start(void)
 void ads1220_stop()
 {
     LL_TIM_DisableCounter(TIM6);
+    if (is_calibr) {
+        is_calibr = 0;
+        ads1220_stop_calibr();
+    }
+}
+
+void ads1220_offset_corr(void *data)
+{
+    if (is_calibr)
+    {
+        return;
+    }
+    
+    int32_t *p = data;
+    for (uint32_t i = 0; i < ADS_CNT; i++) {
+        p[i] = __REV(__REV(p[i]) - calibr_arr[i]);
+    }
 }
 
 void DMA1_SPI3_ReceiveComplete_Callback(void)
@@ -170,28 +235,21 @@ void DMA1_SPI3_ReceiveComplete_Callback(void)
     LL_GPIO_SetOutputPin(ads_cs.port, ads_cs.pin);
 
     uint32_t cmd = tx_buf[0];
-    switch (cmd) {
-    case CMD_RDATA: {
-        memcpy_u8(&rx_buf[1], &ads1220_pacs.data[data_cnt], 3);
-        // debug_printf("0x%02x 0x%02x 0x%02x\n", rx_buf[1], rx_buf[2], rx_buf[3]);
-        data_cnt += 3;
-    } break;
-    case (CMD_RREG | (3 << 2) | 0): {
-        ads1220_pacs.data[data_cnt] = rx_buf[1];
-        data_cnt++;
-    } break;
-    default:
-        break;
-    }
 
     if (++ads_num == ADS_CNT) {
         switch (cmd) {
-        case CMD_RDATA:
+        case 0:
+            if (is_calibr) {
+                for (uint32_t i = 0; i < ADS_CNT; i++) {
+                    calibr_arr[i] += __REV(ads1220_pacs.adc_val[i]);
+                }
+            }
             ads1220_pacs.cnt++;
-            ads1220_pac_iscomplete = 1;
+            ads1220_pac_iscomplete = 1;            
             break;
         case (CMD_RREG | (3 << 2) | 0):
             ads1220_pac_iscomplete = 1;
+            debug_printf("0x%x\n", (uint32_t)pac_data);
             break;
         default:
             break;
@@ -199,8 +257,8 @@ void DMA1_SPI3_ReceiveComplete_Callback(void)
 
         return;
     }
-    // debug_printf("%d\n", ads_num);
 
+    pac_data += 4;    
     continue_send_process();
 }
 
