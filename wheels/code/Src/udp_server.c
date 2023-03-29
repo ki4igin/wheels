@@ -21,6 +21,8 @@ const enum cmd {
     CMD_START_RTD_CALIBR = cmd2uint('c', 'm', 'd', '5'),
     CMD_START_VIBR_CALIBR = cmd2uint('c', 'm', 'd', '6'),
     CMD_CHANGE_IP = cmd2uint('c', 'm', 'd', '7'),
+    CMD_SETDIV_VIBR = cmd2uint('c', 'm', 'd', 'a'),
+    CMD_SETCH_VIBR = cmd2uint('c', 'm', 'd', 'b'),
     CMD_RESET = cmd2uint('c', 'm', 'd', 'r'),
     CMD_ECHO = cmd2uint('c', 'm', 'd', '9')
 } cmd;
@@ -52,6 +54,7 @@ static uint32_t try_connect(enum cmd cmd, const ip_addr_t *addr, uint16_t port)
 
 static void cmd_work(enum cmd cmd, struct pbuf *p)
 {
+    uint32_t arg = 0;
     switch (cmd) {
     case CMD_DISCONNECT:
         status = STATUS_STOPPED;
@@ -102,6 +105,22 @@ static void cmd_work(enum cmd cmd, struct pbuf *p)
 
         settings_change_ipaddr(ip.addr);
 
+        break;
+    case CMD_SETDIV_VIBR:
+        status = STATUS_STOPPED;
+        debug_printf("stop vibr work\n");
+        ads1278_stop();
+        arg = __REV(*(uint32_t *)(p->payload + 4));
+        debug_printf("change vibr div to: %d\n", arg);
+        ads1278_setdiv(arg);
+        break;
+    case CMD_SETCH_VIBR:
+        status = STATUS_STOPPED;
+        debug_printf("stop vibr work\n");
+        ads1278_stop();
+        arg = __REV(*(uint32_t *)(p->payload + 4));
+        debug_printf("TODO %x\n", arg);
+        ads1278_setch(arg);
         break;
     case CMD_ECHO:
         // udp_send(pcb, p);

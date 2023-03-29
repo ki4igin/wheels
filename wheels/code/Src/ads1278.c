@@ -8,18 +8,32 @@
 #include "stm32f4xx_ll_gpio.h"
 #include "debug.h"
 
-#define ADS1278_BUF_SIZE      (3 * 7)
+#define ADS1278_CH_DATA_SIZE  3
+#define ADS1278_BUF_MAX_SIZE  (ADS1278_CH_DATA_SIZE * 8)
 #define ADS1278_SAMPLES_COUNT 24
 
-static uint8_t rx_buf[ADS1278_BUF_SIZE] = {0};
-static uint8_t tx_buf[ADS1278_BUF_SIZE] = {0};
+const static struct gpio ads_npwd_pins[] = {
+    {VIBR_NPWD0_GPIO_Port, VIBR_NPWD0_Pin},
+    {VIBR_NPWD1_GPIO_Port, VIBR_NPWD1_Pin},
+    {VIBR_NPWD2_GPIO_Port, VIBR_NPWD2_Pin},
+    {VIBR_NPWD3_GPIO_Port, VIBR_NPWD3_Pin},
+    {VIBR_NPWD4_GPIO_Port, VIBR_NPWD4_Pin},
+    {VIBR_NPWD5_GPIO_Port, VIBR_NPWD5_Pin},
+    {VIBR_NPWD6_GPIO_Port, VIBR_NPWD6_Pin},
+    {VIBR_NPWD7_GPIO_Port, VIBR_NPWD7_Pin}
+};
+
+static uint8_t rx_buf[ADS1278_BUF_MAX_SIZE] = {0};
+static uint8_t tx_buf[ADS1278_BUF_MAX_SIZE] = {0};
 
 struct ads1278_pac *ads1278_pac;
 uint32_t ads1278_pac_iscomplete = 0;
+uint32_t ads1278_pac_size = ADS1278_SAMPLES_COUNT * ADS1278_BUF_MAX_SIZE;
 
 uint8_t *pac_data;
 volatile uint32_t sample_num = {0};
 volatile uint32_t pac_num = {0};
+static uint32_t buf_size = ADS1278_BUF_MAX_SIZE;
 
 static struct ads1278_pac ads1278_pacs[4] = {
     [0] = {.id = 1, .cnt = 0, .data = {0}},
@@ -27,6 +41,18 @@ static struct ads1278_pac ads1278_pacs[4] = {
     [2] = {.id = 1, .cnt = 1, .data = {0}},
     [3] = {.id = 1, .cnt = 1, .data = {0}},
 };
+
+inline static void set_buf_size(uint32_t ch_count)
+{
+    if (ch_count == 0 || ch_count > 8) {
+        return;
+    }
+    buf_size = ADS1278_CH_DATA_SIZE * ch_count;
+    uint32_t pac_data_size = buf_size * ADS1278_SAMPLES_COUNT;
+    ads1278_pac_size =
+        sizeof(struct ads1278_pac) - ADS1278_PAC_MAX_SIZE + pac_data_size;
+    MX_DMA_SPI2_SetSize(buf_size);
+}
 
 static void nrdy_int_init(void)
 {
@@ -63,10 +89,12 @@ static void nrdy_int_disable()
 
 void ads1278_init(void)
 {
+    MX_SPI2_Init();
+    MX_DMA_SPI2_Init(tx_buf, rx_buf, ADS1278_BUF_MAX_SIZE);
+
     LL_GPIO_ResetOutputPin(VIBR_NPWD6_GPIO_Port, VIBR_NPWD6_Pin);
     LL_GPIO_ResetOutputPin(VIBR_NPWD7_GPIO_Port, VIBR_NPWD7_Pin);
-    MX_SPI2_Init();
-    MX_DMA_SPI2_Init(tx_buf, rx_buf, ADS1278_BUF_SIZE);
+    set_buf_size(6);
 
     LL_SPI_Enable(SPI2);
 
@@ -84,6 +112,7 @@ void ads1278_start()
     sample_num = 0;
     // volatile uint8_t temp = SPI2->DR;
     // (void)temp;
+
     MX_DMA_SPI2_SetRxAddr(pac_data);
 
     nrdy_int_enable();
@@ -96,7 +125,7 @@ void ads1278_stop()
 
 void DMA1_SPI2_ReceiveComplete_Callback(void)
 {
-    pac_data += ADS1278_BUF_SIZE;
+    pac_data += buf_size;
 
     if (++sample_num == ADS1278_SAMPLES_COUNT) {
         sample_num = 0;
@@ -116,6 +145,30 @@ void DMA1_SPI2_ReceiveComplete_Callback(void)
     }
 
     MX_DMA_SPI2_SetRxAddr(pac_data);
+}
+
+void ads1278_setch(uint32_t mask)
+{
+    if (mask == 0 || mask > 0xFF) {
+        return;
+    }
+
+    // Если включены все каналы, то минимальный предделитель для ADC CLK равен 2
+    if ((mask == 0xFF) && ((RCC->CFGR & RCC_CFGR_MCO1PRE_Msk) == 0)) {
+        ads1278_setdiv(2);
+    }
+
+    uint32_t ch_cnt = 0;
+    for (uint32_t i = 0; i < 8; i++) {
+        struct gpio gpio = ads_npwd_pins[i];
+        if (mask & (1 << i)) {
+            ch_cnt++;
+            LL_GPIO_SetOutputPin(gpio.port, gpio.pin);
+        } else {
+            LL_GPIO_ResetOutputPin(gpio.port, gpio.pin);
+        }
+    }
+    set_buf_size(ch_cnt);
 }
 
 void DMA1_SPI2_HalfReceiveComplete_Callback()

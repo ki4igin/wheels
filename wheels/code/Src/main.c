@@ -88,7 +88,7 @@ int main(void)
             //     // NVIC_SystemReset();
             // }
             
-            udp_server_send(ads1278_pac, sizeof(struct ads1278_pac));
+            udp_server_send(ads1278_pac, ads1278_pac_size);
         }
         if (ads1220_pac_iscomplete) {
             ads1220_pac_iscomplete = 0;
@@ -135,7 +135,7 @@ void SystemClock_Config(void)
         Error_Handler();
     }
     LL_RCC_ConfigMCO(LL_RCC_MCO1SOURCE_HSE, LL_RCC_MCO1_DIV_1);
-    LL_RCC_ConfigMCO(LL_RCC_MCO2SOURCE_HSE, LL_RCC_MCO2_DIV_1);
+    LL_RCC_ConfigMCO(LL_RCC_MCO2SOURCE_HSE, LL_RCC_MCO2_DIV_1);    
 }
 
 /**
