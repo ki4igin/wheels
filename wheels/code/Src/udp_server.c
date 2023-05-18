@@ -7,8 +7,10 @@
 #include "settings.h"
 
 #define UDP_SERVER_PORT_CMD  2020
-#define UDP_SERVER_PORT_RTD  2021
-#define UDP_SERVER_PORT_VIBR 2022
+
+#define UDP_CLIENT_PORT_CMD  2020
+#define UDP_CLIENT_PORT_RTD  2021
+#define UDP_CLIENT_PORT_VIBR 2022
 
 #define cmd2uint(char1, char2, char3, char4) \
     ((char4 << 24) + (char3 << 16) + (char2 << 8) + char1)
@@ -38,23 +40,24 @@ enum status {
     STATUS_STARTED
 } status = STATUS_STOPPED;
 
-struct udp_pcb *pcb_cmd;
-struct udp_pcb *pcb_rtd;
-struct udp_pcb *pcb_vibr;
+struct udp_pcb *pcb_cmd_s;
+struct udp_pcb *pcb_cmd_c;
+struct udp_pcb *pcb_rtd_c;
+struct udp_pcb *pcb_vibr_c;
 struct ip4_addr ip;
 
 static void connect(const ip_addr_t *addr)
 {
-    udp_connect(pcb_cmd, addr, UDP_SERVER_PORT_CMD);
-    udp_connect(pcb_rtd, addr, UDP_SERVER_PORT_RTD);
-    udp_connect(pcb_vibr, addr, UDP_SERVER_PORT_VIBR);
+    udp_connect(pcb_cmd_c, addr, UDP_CLIENT_PORT_CMD);
+    udp_connect(pcb_rtd_c, addr, UDP_CLIENT_PORT_RTD);
+    udp_connect(pcb_vibr_c, addr, UDP_CLIENT_PORT_VIBR);
 }
 
 static void disconnect(void)
 {
-    udp_disconnect(pcb_cmd);
-    udp_disconnect(pcb_rtd);
-    udp_disconnect(pcb_vibr);
+    udp_disconnect(pcb_cmd_c);
+    udp_disconnect(pcb_rtd_c);
+    udp_disconnect(pcb_vibr_c);
 }
 
 static uint32_t try_connect(enum cmd cmd, const ip_addr_t *addr)
@@ -99,7 +102,7 @@ static void cmd_work(enum cmd cmd, struct pbuf *p)
         ads1220_stop();
         debug_printf("DEV: reset...\n");
         delay_ms(100);
-        udp_send(pcb_cmd, p);
+        udp_send(pcb_cmd_c, p);
         NVIC_SystemReset();
         break;
     case CMD_CHANGE_IP:
@@ -139,7 +142,7 @@ static void cmd_work(enum cmd cmd, struct pbuf *p)
     default:
         return;
     }
-    udp_send(pcb_cmd, p);
+    udp_send(pcb_cmd_c, p);
 }
 
 static void recv_callback(
@@ -153,7 +156,7 @@ static void recv_callback(
 
     if (udp_server_status == UDP_SERVER_DISCONNECTED) {
         if (try_connect(cmd, addr)) {
-            udp_send(pcb, p);
+            udp_send(pcb_cmd_c, p);
             ;
         }
     }
@@ -167,23 +170,21 @@ void udp_server_init(void)
 {
     err_t err = ERR_OK;
 
-    pcb_cmd = udp_new();
-    pcb_vibr = udp_new();
-    pcb_rtd = udp_new();
+    pcb_cmd_s = udp_new();
+    pcb_cmd_c = udp_new();
+    pcb_vibr_c = udp_new();
+    pcb_rtd_c = udp_new();
 
     ip.addr = (*(uint32_t *)settings->ip_addr);
 
-    udp_bind(pcb_cmd, &ip, UDP_SERVER_PORT_CMD);
-    udp_bind(pcb_vibr, &ip, UDP_SERVER_PORT_VIBR);
-    udp_bind(pcb_rtd, &ip, UDP_SERVER_PORT_RTD);
-
-    udp_recv(pcb_cmd, recv_callback, NULL);
+    udp_bind(pcb_cmd_s, &ip, UDP_SERVER_PORT_CMD);
+    udp_recv(pcb_cmd_s, recv_callback, NULL);
 
     char *ip_str = ipaddr_ntoa(&ip);
-    debug_printf("DEV: server %s started\n", ip_str);
-    debug_printf("DEV:  cmd port %d\n", UDP_SERVER_PORT_CMD);
-    debug_printf("DEV:  rtd port %d\n", UDP_SERVER_PORT_RTD);
-    debug_printf("DEV: vibr port %d\n", UDP_SERVER_PORT_VIBR);
+    debug_printf("DEV: server %s:%d started\n", ip_str, UDP_SERVER_PORT_CMD);
+    debug_printf("DEV:  cmd port %d\n", UDP_CLIENT_PORT_CMD);
+    debug_printf("DEV:  rtd port %d\n", UDP_CLIENT_PORT_RTD);
+    debug_printf("DEV: vibr port %d\n", UDP_CLIENT_PORT_VIBR);
 }
 
 void udp_server_send_vibr(void *data, uint32_t size)
@@ -194,7 +195,7 @@ void udp_server_send_vibr(void *data, uint32_t size)
 
     struct pbuf *p = pbuf_alloc(PBUF_TRANSPORT, size, PBUF_RAM);
     pbuf_take(p, data, size);
-    udp_send(pcb_vibr, p);
+    udp_send(pcb_vibr_c, p);
     pbuf_free(p);
 }
 
@@ -206,6 +207,6 @@ void udp_server_send_rtd(void *data, uint32_t size)
 
     struct pbuf *p = pbuf_alloc(PBUF_TRANSPORT, size, PBUF_RAM);
     pbuf_take(p, data, size);
-    udp_send(pcb_rtd, p);
+    udp_send(pcb_rtd_c, p);
     pbuf_free(p);
 }
