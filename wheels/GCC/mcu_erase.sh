@@ -2,7 +2,7 @@ utility="C:\Program Files (x86)\STMicroelectronics\STM32 ST-LINK Utility\ST-LINK
 
 if "$utility" -ME >&-
 then 
-echo -e "\033[32;1;40m""Flash memory erased""\033[0m"
+echo -e "\033[0;32m""Flash memory erased""\033[0m"
 else 
 "$utility" -ME
 fi
