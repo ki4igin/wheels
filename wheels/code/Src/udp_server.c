@@ -5,17 +5,18 @@
 #include "ads1278.h"
 #include "ads1220.h"
 #include "settings.h"
+#include "err.h"
 
-#define UDP_SERVER_PORT_CMD  2020
+#define SERVER_PORT_CMD  2020
 
-#define UDP_CLIENT_PORT_CMD  2020
-#define UDP_CLIENT_PORT_RTD  2021
-#define UDP_CLIENT_PORT_VIBR 2022
+#define CLIENT_PORT_CMD  2020
+#define CLIENT_PORT_RTD  2021
+#define CLIENT_PORT_VIBR 2022
 
 #define cmd2uint(char1, char2, char3, char4) \
     ((char4 << 24) + (char3 << 16) + (char2 << 8) + char1)
 
-const enum cmd {
+enum {
     CMD_CONNECT = cmd2uint('c', 'm', 'd', '0'),
     CMD_DISCONNECT = cmd2uint('c', 'm', 'd', '1'),
     CMD_START_VIBR = cmd2uint('c', 'm', 'd', '2'),
@@ -28,100 +29,81 @@ const enum cmd {
     // CMD_START_VIBR_CALIBR = cmd2uint('c', 'm', 'd', '6'),
     CMD_ECHO = cmd2uint('c', 'm', 'd', '9'),
     CMD_RESET = cmd2uint('c', 'm', 'd', 'r')
-} cmd;
+};
 
-enum udp_server_status {
-    UDP_SERVER_DISCONNECTED,
-    UDP_SERVER_CONNECTED
-} udp_server_status = UDP_SERVER_DISCONNECTED;
+struct cmd {
+    uint32_t id;
+    uint32_t arg[];
+};
 
-enum status {
-    STATUS_STOPPED,
-    STATUS_STARTED
-} status = STATUS_STOPPED;
+struct ans {
+    uint32_t id;
+    uint32_t err;
+};
 
-struct udp_pcb *pcb_cmd_s;
-struct udp_pcb *pcb_cmd_c;
-struct udp_pcb *pcb_rtd_c;
-struct udp_pcb *pcb_vibr_c;
-struct ip4_addr ip;
+static struct udp_pcb *pcb_cmd_s;
+static struct udp_pcb *pcb_c;
+static ip_addr_t ip_s;
+static ip_addr_t ip_c = {.addr = IPADDR_ANY};
 
-static void connect(const ip_addr_t *addr)
+static void udp_server_send(void *data, uint32_t size, uint16_t port)
 {
-    udp_connect(pcb_cmd_c, addr, UDP_CLIENT_PORT_CMD);
-    udp_connect(pcb_rtd_c, addr, UDP_CLIENT_PORT_RTD);
-    udp_connect(pcb_vibr_c, addr, UDP_CLIENT_PORT_VIBR);
+    struct pbuf *p = pbuf_alloc(PBUF_TRANSPORT, size, PBUF_RAM);
+    pbuf_take(p, data, size);
+    udp_sendto(pcb_c, p, &ip_c, port);
+    pbuf_free(p);
 }
 
-static void disconnect(void)
+static void udp_server_send_ans(struct ans *ans)
 {
-    udp_disconnect(pcb_cmd_c);
-    udp_disconnect(pcb_rtd_c);
-    udp_disconnect(pcb_vibr_c);
+    udp_server_send(ans, sizeof(*ans), CLIENT_PORT_CMD);
 }
 
-static uint32_t try_connect(enum cmd cmd, const ip_addr_t *addr)
+static void cmd_work(struct cmd *cmd)
 {
-    if (cmd == CMD_CONNECT) {
-        connect(addr);
-        udp_server_status = UDP_SERVER_CONNECTED;
-        char *ip_client = ipaddr_ntoa(addr);
+    uint32_t cmd_id = cmd->id;
+    struct ans ans = {.id = cmd_id};
+    switch (cmd_id) {
+    case CMD_CONNECT:
+        char *ip_client = ipaddr_ntoa(&ip_c);
         debug_printf("DEV: client %s connected\n", ip_client);
-        return 1;
-    }
-    return 0;
-}
-
-static void cmd_work(enum cmd cmd, struct pbuf *p)
-{
-    uint32_t arg = 0;
-    switch (cmd) {
+        break;
     case CMD_DISCONNECT:
-        status = STATUS_STOPPED;
         delay_ms(10);
-        disconnect();
-        udp_server_status = UDP_SERVER_DISCONNECTED;
         debug_printf("DEV: client disconnected\n");
         break;
     case CMD_START_VIBR:
-        status = STATUS_STARTED;
         ads1278_start();
         break;
     case CMD_START_RTD:
-        status = STATUS_STARTED;
         ads1220_start();
         break;
     case CMD_STOP:
-        status = STATUS_STOPPED;
         ads1278_stop();
         ads1220_stop();
         break;
     case CMD_RESET:
-        status = STATUS_STOPPED;
         ads1278_stop();
         ads1220_stop();
         debug_printf("DEV: reset...\n");
         delay_ms(10);
-        udp_send(pcb_cmd_c, p);
+        udp_server_send_ans(&ans);
         delay_ms(10);
         NVIC_SystemReset();
         break;
     case CMD_CHANGE_IP:
-        status = STATUS_STOPPED;
         ads1278_stop();
         ads1220_stop();
         delay_ms(10);
-        udp_send(pcb_cmd_c, p);
+        udp_server_send_ans(&ans);
         delay_ms(10);
-        disconnect();
-        udp_server_status = UDP_SERVER_DISCONNECTED;
         debug_printf("DEV: client disconnected\n");
 
-        ip.addr = *(uint32_t *)((uint8_t*)p->payload + 4);
-        char *ip_str = ipaddr_ntoa(&ip);
+        ip_s.addr = cmd->arg[0];
+        char *ip_str = ipaddr_ntoa(&ip_s);
         debug_printf("DEV: ip change to %s\n", ip_str);
 
-        settings_change_ipaddr(ip.addr);
+        settings_change_ipaddr(ip_s.addr);
 
         debug_printf("DEV: reset...\n");
         delay_ms(10);
@@ -129,23 +111,24 @@ static void cmd_work(enum cmd cmd, struct pbuf *p)
 
         break;
     case CMD_SETDIV_VIBR:
-        status = STATUS_STOPPED;
         ads1278_stop();
-        arg = *(uint32_t *)((uint8_t*)p->payload + 4);
-        ads1278_setdiv(arg);
+        delay_ms(10);
+        ads1278_setdiv(cmd->arg[0]);
+        delay_ms(10);
         break;
     case CMD_SETCH_VIBR:
-        status = STATUS_STOPPED;
         ads1278_stop();
-        arg = *(uint32_t *)((uint8_t*)p->payload + 4);
-        ads1278_setch(arg);
+        delay_ms(10);
+        ads1278_setch(cmd->arg[0]);
+        delay_ms(10);
         break;
     case CMD_ECHO:
         break;
     default:
+        ans.err = ERR_CMD_UNKNOW;
         return;
     }
-    udp_send(pcb_cmd_c, p);
+    udp_server_send_ans(&ans);
 }
 
 static void recv_callback(
@@ -159,59 +142,42 @@ static void recv_callback(
     (void)pcb;
     (void)port;
 
-    enum cmd cmd = (enum cmd)(*(uint32_t *)(p->payload));
-
-    if (udp_server_status == UDP_SERVER_DISCONNECTED) {
-        if (try_connect(cmd, addr)) {
-            udp_send(pcb_cmd_c, p);
-            ;
-        }
+    ip_c.addr = addr->addr;
+    if (p->len > 8) {
+        udp_server_send_ans(&(struct ans){
+            .id = *(uint32_t *)p->payload,
+            .err = ERR_CMD_SO_BIG,
+        });
+    } else {
+        cmd_work(p->payload);
     }
 
-    if (udp_server_status == UDP_SERVER_CONNECTED) {
-        cmd_work(cmd, p);
-    }
+    pbuf_free(p);
 }
 
 void udp_server_init(void)
 {
     pcb_cmd_s = udp_new();
-    pcb_cmd_c = udp_new();
-    pcb_vibr_c = udp_new();
-    pcb_rtd_c = udp_new();
+    pcb_c = udp_new();
 
-    ip.addr = (*(uint32_t *)settings->ip_addr);
+    ip_s.addr = (*(uint32_t *)settings->ip_addr);
 
-    udp_bind(pcb_cmd_s, &ip, UDP_SERVER_PORT_CMD);
+    udp_bind(pcb_cmd_s, &ip_s, SERVER_PORT_CMD);
     udp_recv(pcb_cmd_s, recv_callback, NULL);
 
-    char *ip_str = ipaddr_ntoa(&ip);
-    debug_printf("DEV: server %s:%d started\n", ip_str, UDP_SERVER_PORT_CMD);
-    debug_printf("DEV:  cmd port %d\n", UDP_CLIENT_PORT_CMD);
-    debug_printf("DEV:  rtd port %d\n", UDP_CLIENT_PORT_RTD);
-    debug_printf("DEV: vibr port %d\n", UDP_CLIENT_PORT_VIBR);
+    char *ip_str = ipaddr_ntoa(&ip_s);
+    debug_printf("DEV: server %s:%d started\n", ip_str, SERVER_PORT_CMD);
+    debug_printf("DEV:  cmd port %d\n", CLIENT_PORT_CMD);
+    debug_printf("DEV:  rtd port %d\n", CLIENT_PORT_RTD);
+    debug_printf("DEV: vibr port %d\n", CLIENT_PORT_VIBR);
 }
 
 void udp_server_send_vibr(void *data, uint32_t size)
 {
-    if (status != STATUS_STARTED) {
-        return;
-    }
-
-    struct pbuf *p = pbuf_alloc(PBUF_TRANSPORT, size, PBUF_RAM);
-    pbuf_take(p, data, size);
-    udp_send(pcb_vibr_c, p);
-    pbuf_free(p);
+    udp_server_send(data, size, CLIENT_PORT_VIBR);
 }
 
 void udp_server_send_rtd(void *data, uint32_t size)
 {
-    if (status != STATUS_STARTED) {
-        return;
-    }
-
-    struct pbuf *p = pbuf_alloc(PBUF_TRANSPORT, size, PBUF_RAM);
-    pbuf_take(p, data, size);
-    udp_send(pcb_rtd_c, p);
-    pbuf_free(p);
+    udp_server_send(data, size, CLIENT_PORT_RTD);
 }
