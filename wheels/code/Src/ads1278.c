@@ -12,7 +12,7 @@
 #define ADS1278_BUF_MAX_SIZE  (ADS1278_CH_DATA_SIZE * 8)
 #define ADS1278_SAMPLES_COUNT 24
 
-const static struct gpio ads_npwd_pins[] = {
+const struct gpio ads_npwd_pins[] = {
     {VIBR_NPWD0_GPIO_Port, VIBR_NPWD0_Pin},
     {VIBR_NPWD1_GPIO_Port, VIBR_NPWD1_Pin},
     {VIBR_NPWD2_GPIO_Port, VIBR_NPWD2_Pin},

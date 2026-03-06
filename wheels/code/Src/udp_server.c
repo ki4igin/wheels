@@ -101,8 +101,9 @@ static void cmd_work(enum cmd cmd, struct pbuf *p)
         ads1278_stop();
         ads1220_stop();
         debug_printf("DEV: reset...\n");
-        delay_ms(100);
+        delay_ms(10);
         udp_send(pcb_cmd_c, p);
+        delay_ms(10);
         NVIC_SystemReset();
         break;
     case CMD_CHANGE_IP:
@@ -110,31 +111,33 @@ static void cmd_work(enum cmd cmd, struct pbuf *p)
         ads1278_stop();
         ads1220_stop();
         delay_ms(10);
+        udp_send(pcb_cmd_c, p);
+        delay_ms(10);
         disconnect();
         udp_server_status = UDP_SERVER_DISCONNECTED;
         debug_printf("DEV: client disconnected\n");
 
-        ip.addr = *(uint32_t *)(p->payload + 4);
+        ip.addr = *(uint32_t *)((uint8_t*)p->payload + 4);
         char *ip_str = ipaddr_ntoa(&ip);
         debug_printf("DEV: ip change to %s\n", ip_str);
 
         settings_change_ipaddr(ip.addr);
 
         debug_printf("DEV: reset...\n");
-        delay_ms(100);
+        delay_ms(10);
         NVIC_SystemReset();
 
         break;
     case CMD_SETDIV_VIBR:
         status = STATUS_STOPPED;
         ads1278_stop();
-        arg = *(uint32_t *)(p->payload + 4);
+        arg = *(uint32_t *)((uint8_t*)p->payload + 4);
         ads1278_setdiv(arg);
         break;
     case CMD_SETCH_VIBR:
         status = STATUS_STOPPED;
         ads1278_stop();
-        arg = *(uint32_t *)(p->payload + 4);
+        arg = *(uint32_t *)((uint8_t*)p->payload + 4);
         ads1278_setch(arg);
         break;
     case CMD_ECHO:
@@ -152,6 +155,10 @@ static void recv_callback(
     const ip_addr_t *addr,
     u16_t port)
 {
+    (void)arg;
+    (void)pcb;
+    (void)port;
+
     enum cmd cmd = (enum cmd)(*(uint32_t *)(p->payload));
 
     if (udp_server_status == UDP_SERVER_DISCONNECTED) {
@@ -168,8 +175,6 @@ static void recv_callback(
 
 void udp_server_init(void)
 {
-    err_t err = ERR_OK;
-
     pcb_cmd_s = udp_new();
     pcb_cmd_c = udp_new();
     pcb_vibr_c = udp_new();
