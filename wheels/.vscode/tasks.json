@@ -6,7 +6,7 @@
         {
             "label": "build release",
             "type": "shell",
-            "command": "make -C GCC all RELEASE=1",
+            "command": "make -f GCC/makefile RELEASE=1",
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -16,7 +16,7 @@
         {
             "label": "build debug",
             "type": "shell",
-            "command": "make -C GCC",
+            "command": "make -f GCC/makefile",
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -26,7 +26,7 @@
         {
             "label": "clean",
             "type": "shell",
-            "command": "make -C GCC clean",
+            "command": "make -f GCC/makefile clean",
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -36,7 +36,7 @@
         {
             "label": "Starttest",
             "type": "shell",
-            "command": "make -C GCC test",
+            "command": "make -f GCC/makefile test",
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -46,7 +46,13 @@
         {
             "label": "MCU Flash Debug",
             "type": "shell",
-            "command": "filePath=./build/debug/ ./GCC/mcu_flash.sh",
+            "windows":{
+                "command": "filePath=./build/debug/ ./scripts/mcu_flash.sh"
+            },
+            "linux":{
+                "command": "sudo filePath=./build/debug/ ./scripts/mcu_flash.sh"
+            },
+            "args": [],
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -56,7 +62,13 @@
         {
             "label": "MCU Flash Release",
             "type": "shell",
-            "command": "filePath=./build/release/ ./GCC/mcu_flash.sh",
+            "windows":{
+                "command": "filePath=./build/release/ ./scripts/mcu_flash.sh"
+            },
+            "linux":{
+                "command": "sudo filePath=./build/release/ ./scripts/mcu_flash.sh"
+            },
+            "args": [],
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -66,7 +78,13 @@
         {
             "label": "MCU Erase",
             "type": "shell",
-            "command": "./GCC/mcu_erase.sh",
+            "windows":{
+                "command": "./GCC/mcu_erase.sh"
+            },
+            "linux":{
+                "command": "sudo ./GCC/mcu_erase.sh"
+            },
+            "args": [],
             "group": {
                 "kind": "build",
                 "isDefault": true

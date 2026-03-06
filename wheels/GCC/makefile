@@ -1,27 +1,36 @@
 default: all
-include makefile_color
-include makefile_version
+include ./GCC/makefile_*
+
+ifeq ($(OS),Windows_NT)
+	PYTHON := python
+else
+	PYTHON := python3
+endif
 
 ###############################################################################
 # Main application file name
 ###############################################################################
-TARGET := $(notdir $(shell dirname $(shell pwd)))
+TARGET := $(notdir $(shell pwd))
+VERSION_STR := $(shell $(PYTHON) scripts/get_version.py)
 PHONY :=
-MAKEFLAGS += --silent
+MAKEFLAGS += --silent --g 4
+
 
 
 ###############################################################################
 # Build path
 ###############################################################################
 ifeq ($(RELEASE), 1)
-BUILD_DIR := ../build/release
+BUILD_DIR := build/release
 else
-BUILD_DIR := ../build/debug
+BUILD_DIR := build/debug
 DEBUG := 1
 endif
 
-SRC_DIR := ../code
+SRC_DIR := code
 LIB_FOLDER := Drivers
+DSP_FOLDER := 
+EXC_FOLDER := temp
 
 
 ###############################################################################
@@ -31,16 +40,16 @@ LIB_FOLDER := Drivers
 DEFINES_C := STM32F407xx
 DEFINES_C += USE_FULL_LL_DRIVER
 DEFINES_C += USE_HAL_DRIVER
+DEFINES_C += HSE_VALUE=25000000UL
 DEFINES_C += VERSION_STR=\"$(VERSION_STR)\"
-DEFINES_C += VERSION=$(VERSION_NUM)
 
 # includes
-INCLUDES := $(shell find $(SRC_DIR) -type d)
-INCLUDES_LIB := $(shell find $(SRC_DIR)/$(LIB_FOLDER) -type d)
+INCLUDES := $(shell find $(SRC_DIR) -type d -not -path $(EXC_FOLDER))
+INCLUDES_LIB := $(shell find $(SRC_DIR)/$(LIB_FOLDER) -type d -not -path $(EXC_FOLDER))
 INCLUDES_SRC := $(filter-out $(INCLUDES_LIB),$(INCLUDES))
 INCLUDES := $(INCLUDES_SRC) $(INCLUDES_LIB)
 
-INCLUDES_CC := 
+INCLUDES_CC := ./GCC
 
 # ASM sources
 SOURCES_A := startup_stm32f407xx.s
@@ -51,19 +60,20 @@ SOURCES_C := $(wildcard $(addsuffix /*.c, $(INCLUDES_SRC)))
 # C lib sources
 SOURCES_C_LIB := $(wildcard $(addsuffix /*.c, $(INCLUDES_LIB)))
 
+INCLUDES += $(dir $(SOURCES_C_LIB))
 
 ###############################################################################
 # Compilers and Utilities binaries
 ###############################################################################
 PREFIX = arm-none-eabi-
-CC_PATH ?=
+CC_PATH := $(GCC_ARM_NONE_EABI_PATH)
 
-AS 		:= $(CC_PATH)$(PREFIX)gcc -xassembler-with-cpp
-CC 		:= $(CC_PATH)$(PREFIX)gcc.exe
-LD 		:= $(CC_PATH)$(PREFIX)armlink
-OBJCOPY := $(CC_PATH)$(PREFIX)objcopy
-OBJDUMP := $(CC_PATH)$(PREFIX)objdump
-SZ 		:= $(CC_PATH)$(PREFIX)size
+AS 		:= "$(CC_PATH)$(PREFIX)gcc" -xassembler-with-cpp
+CC 		:= "$(CC_PATH)$(PREFIX)gcc"
+LD 		:= "$(CC_PATH)$(PREFIX)gcc"
+OBJCOPY := "$(CC_PATH)$(PREFIX)objcopy"
+OBJDUMP := "$(CC_PATH)$(PREFIX)objdump"
+SZ 		:= "$(CC_PATH)$(PREFIX)size"
 CC_VERSION := $(shell $(CC) --version)
 
 
@@ -96,10 +106,10 @@ AFLAGS := $(FLAGS)
 FLAGS_C := $(FLAGS)
 FLAGS_C += -ffunction-sections
 FLAGS_C += -fdata-sections
-FLAGS_C += -fshort-enums
 FLAGS_C += -funsigned-char
 FLAGS_C += -fpeel-loops
-FLAGS_C += -std=gnu17
+FLAGS_C += -std=c2x
+FLAGS_C += -fcx-limited-range
 FLAGS_C += $(OPT)
 FLAGS_C += -MMD -MP
 
@@ -116,7 +126,7 @@ FLAGS_INC := $(addprefix -I, $(INCLUDES)) $(addprefix -I, $(INCLUDES_CC))
 # FLAGS_LD
 ###############################################################################
 # link script
-LSCRIPT := STM32F407VETx_FLASH.ld
+LSCRIPT := GCC/STM32F407VETx_FLASH.ld
 
 # libraries
 LIBS := -lc -lm -lnosys 
@@ -144,7 +154,7 @@ OBJECTS := $(addprefix $(BUILD_DIR)/, $(notdir $(SOURCES_C:.c=.o)))
 OBJECTS += $(addprefix $(BUILD_DIR)/, $(notdir $(SOURCES_C_LIB:.c=.lo)))
 OBJECTS += $(addprefix $(BUILD_DIR)/, $(notdir $(SOURCES_A:.s=.o)))
 vpath %.c $(sort $(INCLUDES))
-vpath %.s $(sort $(INCLUDES))
+vpath %.s $(sort $(INCLUDES)) GCC
 
 # Build all
 all: build
@@ -160,21 +170,21 @@ rebuild: clean build
 $(BUILD_DIR)/%.hex: $(BUILD_DIR)/%.elf | $(BUILD_DIR)
 	$(OBJCOPY) $(HFLAGS) $< $@
 
-$(BUILD_DIR)/%.lss: $(BUILD_DIR)/%.elf | $(BUILD_DIR)
+$(BUILD_DIR)/%.lss: $(BUILD_DIR)/%.elf | $(BUILD_DIR)	
 	$(OBJDUMP) -S $< > $@
 
-$(BUILD_DIR)/$(TARGET).elf: $(OBJECTS) Makefile	
+$(BUILD_DIR)/$(TARGET).elf: $(OBJECTS)	
 	$(CC) $(OBJECTS) $(FLAGS_LD) -o $@
 
-$(BUILD_DIR)/%.lo: %.c Makefile | $(BUILD_DIR)
+$(BUILD_DIR)/%.lo: %.c | $(BUILD_DIR)
 	@echo $<
 	$(CC) -c $(FLAGS_C) $(FLAGS_INC) $(FLAGS_DEF) $< -o $@
 
-$(BUILD_DIR)/%.o: %.c Makefile | $(BUILD_DIR)
+$(BUILD_DIR)/%.o: %.c | $(BUILD_DIR)
 	@echo $<
 	$(CC) -c $(FLAGS_C) $(FLAGS_C_W) $(FLAGS_INC) $(FLAGS_DEF) $< -o $@
 
-$(BUILD_DIR)/%.o: %.s Makefile | $(BUILD_DIR)
+$(BUILD_DIR)/%.o: %.s | $(BUILD_DIR)
 	@echo $<
 	$(AS) -c $(AFLAGS) $< -o $@
 
@@ -195,19 +205,20 @@ erase:
 	$(utility) -ME >&-
 	@echo $(COLOR_GREEN)"Flash memory erased"$(COLOR_NC)
 
-info: version_info
-	$(call echo_green,"Target:") $(TARGET)
+info:
+	$(call echo_green,"Target:  ") $(TARGET)
+	$(call echo_green,"Version: ") $(VERSION_STR)
 	$(call echo_green,"Build to:") $(BUILD_DIR)
 	$(call echo_green,Compiler version:) "$(CC_VERSION)"
-	$(call echo_green,Compiler flags:) $(FLAGS_C)
+	$(call echo_green,Compiler flags:) $(FLAGS_C) $(FLAGS_C_W)
 	$(call echo_green,Defines:) $(DEFINES_C)
 	$(call echo_green,Linking flags:) $(FLAGS_LD)
 	@echo
 
 PHONY += test
 test :
-	@echo ${BUILD_DIR}
-	@echo ${OBJECTS}
+	@echo $(CC)
+	@echo ${OBJDUMP}
 
 
 ###############################################################################
