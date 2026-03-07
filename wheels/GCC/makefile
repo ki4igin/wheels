@@ -168,7 +168,7 @@ build: info $(BUILD_DIR)/$(TARGET).hex $(BUILD_DIR)/$(TARGET).lss
 rebuild: clean build
 
 $(BUILD_DIR)/%.hex: $(BUILD_DIR)/%.elf | $(BUILD_DIR)
-	$(OBJCOPY) $(HFLAGS) $< $@
+	$(OBJCOPY) $(FLAGS_H) $< $@
 
 $(BUILD_DIR)/%.lss: $(BUILD_DIR)/%.elf | $(BUILD_DIR)	
 	$(OBJDUMP) -S $< > $@

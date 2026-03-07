@@ -14,7 +14,7 @@ struct ads1278_pac {
 };
 
 extern struct ads1278_pac *ads1278_pac;
-extern uint32_t ads1278_pac_iscomplete;
+extern volatile uint32_t ads1278_pac_iscomplete;
 extern uint32_t ads1278_pac_size;
 
 void ads1278_init(void);

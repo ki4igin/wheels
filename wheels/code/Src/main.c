@@ -13,7 +13,6 @@
 
 void SystemClock_Config(void);
 
-
 /**
  * @brief  The application entry point.
  * @retval int
@@ -30,14 +29,13 @@ int main(void)
 
     settings_init();
 
-    /* Initialize all configured peripherals */    
+    /* Initialize all configured peripherals */
     MX_GPIO_Init();
     MX_LWIP_Init();
     MX_USART1_UART_Init();
     MX_SPI1_Init();
 
     debug_printf("\nDEV: init start\n");
-    
 
     delay_ms(10);
     ads1278_init();
@@ -97,7 +95,7 @@ void SystemClock_Config(void)
         Error_Handler();
     }
     LL_RCC_ConfigMCO(LL_RCC_MCO1SOURCE_HSE, LL_RCC_MCO1_DIV_1);
-    LL_RCC_ConfigMCO(LL_RCC_MCO2SOURCE_HSE, LL_RCC_MCO2_DIV_1);    
+    LL_RCC_ConfigMCO(LL_RCC_MCO2SOURCE_HSE, LL_RCC_MCO2_DIV_1);
 }
 
 /**
